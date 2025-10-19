@@ -1,0 +1,96 @@
+/* YHD AIパーソナル診断 基本スタイルシート */
+
+/* :root にカラー変数を定義し、全体の色調を管理しやすくします */
+:root {
+  --tiffany-blue: #0abab5; /* ティファニーブルー */
+  --dark-text: #2c3e50;    /* 主要なテキスト・ボタン色 */
+  --light-text: #888;     /* 説明文などの薄いテキスト色 */
+  --background-color: #f4f7f6; /* アプリ全体の背景色 */
+  --white: #ffffff;         /* カード背景色 */
+  --light-gray: #e9ecef;   /* 入力欄などの背景色 */
+}
+
+/* 基本的なリセットとフォント設定 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  background-color: var(--background-color);
+  width: 100%;
+  min-height: 100vh;
+  /* flexboxで中央揃えを実現 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0; /* 上下に余白を追加 */
+}
+
+/* 各フェーズのコンテンツを囲うカードデザイン */
+.phase-container {
+  background-color: var(--white);
+  width: 90%;
+  max-width: 420px; /* スマートフォンの幅を想定 */
+  padding: 40px 30px;
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+/* --- 共通コンポーネントのスタイル --- */
+
+h1 {
+  color: var(--dark-text);
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+p {
+  color: var(--light-text);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 30px;
+}
+
+/* ボタンの基本スタイル */
+button {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 50px; /* 丸みを帯びたボタン */
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  letter-spacing: 1px;
+}
+
+/* 主要なアクションボタン (ティファニーブルー) */
+.btn-primary {
+  background-color: var(--tiffany-blue);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 15px rgba(10, 186, 181, 0.4);
+}
+
+/* ダークなボタン */
+.btn-dark {
+    background-color: var(--dark-text);
+    color: var(--white);
+}
+.btn-dark:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+}
+
+/* --- フェーズ1 (オープニング画面) の固有スタイル --- */
+#phase1 h1 {
+    margin-top: 20px; /* ロゴとタイトルの間に余白 */
+}
