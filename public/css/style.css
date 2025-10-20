@@ -13,14 +13,22 @@ body {
     color: var(--text-color);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: center; /* ローディングを中央に */
     min-height: 100vh;
     box-sizing: border-box;
 }
 
+/* --- ローディング画面 --- */
+.loading-container {
+    text-align: center;
+    color: var(--dark-color);
+}
+
+/* --- フェーズ管理 --- */
 .phase-container {
+    display: none; /* JSで制御するまで全フェーズを非表示 */
     width: 100%;
-    max-width: 420px; /* スマートフォンに最適な幅 */
+    max-width: 420px;
 }
 
 .card {
@@ -30,7 +38,7 @@ body {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
     width: 100%;
     text-align: center;
-    box-sizing: border-box; /* paddingを含めた幅計算に */
+    box-sizing: border-box;
 }
 
 /* --- Phase 1 Styles --- */
@@ -38,9 +46,8 @@ body {
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    margin: 0 auto 25px auto; /* autoで中央揃え */
-    display: block; /* 中央揃えのためにblock要素に */
-    background-color: #f0f8ff;
+    margin: 0 auto 25px auto;
+    display: block;
 }
 
 .main-title {
@@ -56,26 +63,298 @@ body {
     margin-bottom: 30px;
 }
 
-/* --- Button Styles --- */
-.btn-primary {
-    display: block; /* 中央揃えのためにblock要素に */
-    width: 100%; /* 横幅いっぱいに */
-    max-width: 300px; /* 最大幅を指定 */
-    margin: 0 auto; /* autoで中央揃え */
-    background-color: var(--primary-color);
-    color: white;
-    font-size: 18px; /* 文字を少し大きく */
+/* --- Form Styles --- */
+.form-title {
+    font-size: 22px;
+    color: var(--dark-color);
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
     font-weight: bold;
-    padding: 15px 20px; /* 上下の余白を大きく */
-    border: none;
-    border-radius: 30px; /* 丸みを強く */
+    margin-bottom: 8px;
+    color: var(--dark-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+}
+
+.gender-selection {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.gender-selection input[type="radio"] {
+    display: none;
+}
+
+.gender-selection label {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    margin: 0;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4); /* 影を追加 */
+}
+
+.gender-selection input[type="radio"]:checked + label {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+}
+
+/* --- Phase 3 Upload Styles --- */
+.upload-list {
+    margin-top: 10px;
+    margin-bottom: 30px;
+}
+
+.upload-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-radius: 12px;
+    border: 1px solid #eee;
+}
+
+.upload-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #eef2f7;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.upload-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--dark-color);
+}
+
+.upload-text {
+    flex-grow: 1;
+    text-align: left;
+}
+
+.upload-text strong {
+    display: block;
+    font-weight: bold;
+    color: var(--dark-color);
+    font-size: 15px;
+}
+
+.upload-text span {
+    font-size: 13px;
+    color: #888;
+}
+
+.btn-outline {
+    background-color: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.btn-outline:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-success {
+    background-color: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+.btn-disabled {
+    background-color: #ccc !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+.btn-disabled:hover {
+    transform: none !important;
+}
+
+/* --- Spinner Styles --- */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(45, 212, 191, 0.2);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    margin: 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- Phase 4 Result Styles --- */
+.result-section {
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.result-title {
+    font-size: 18px;
+    color: var(--dark-color);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+}
+
+.result-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 12px;
+}
+
+.result-item-label {
+    font-weight: bold;
+    color: #555;
+}
+
+.result-item-value {
+    color: var(--dark-color);
+    font-weight: bold;
+    text-align: right;
+}
+
+/* --- Phase 5 Proposal Styles --- */
+.proposal-section {
+    margin-bottom: 30px;
+    text-align: left;
+}
+.proposal-title {
+    font-size: 18px;
+    color: var(--dark-color);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+.proposal-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+.proposal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.proposal-card {
+    background-color: #f8f8f8;
+    border: 2px solid #eee;
+    padding: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.proposal-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.proposal-card.selected {
+    border-color: var(--primary-color);
+    background-color: #e6fffa;
+}
+.proposal-card strong {
+    display: block;
+    color: var(--dark-color);
+    margin-bottom: 5px;
+}
+.proposal-card p {
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
+}
+.top-stylist-comment {
+    background-color: #e6fffa;
+    border-left: 4px solid var(--primary-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+.top-stylist-comment p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* --- Button Styles --- */
+.btn-primary, .btn-dark {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px); /* ホバー時に少し浮き上がる */
+    transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(45, 212, 191, 0.5);
+}
+
+.btn-dark {
+    margin-top: 30px;
+    background-color: var(--dark-color);
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+}
+
+.btn-dark:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 58, 95, 0.4);
 }
 

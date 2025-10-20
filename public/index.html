@@ -7,8 +7,14 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- フェーズ1: オープニング画面 -->
-    <div id="phase1" class="phase-container" style="display: none;">
+    <!-- ローディング画面 (デフォルトで表示) -->
+    <div id="loading-screen" class="loading-container">
+        <div class="spinner"></div>
+        <p>アプリを準備しています...</p>
+    </div>
+
+    <!-- 各フェーズのコンテナ -->
+    <div id="phase1" class="phase-container">
         <div class="card">
             <img src="images/YHDlogo2.gif" alt="YHD AI Diagnosis Logo" class="logo">
             <h1 class="main-title">YHD × AI 『似合わせ』診断</h1>
@@ -20,43 +26,54 @@
         </div>
     </div>
 
-    <!-- フェーズ2: プロフィール入力画面 -->
-    <div id="phase2" class="phase-container" style="display: none;">
-        <!-- ここにフェーズ2のコンテンツを書いていく -->
+    <div id="phase2" class="phase-container">
+        <div class="card">
+            <h2 class="form-title">プロフィール入力</h2>
+            <div class="form-group">
+                <label for="display-name">お名前</label>
+                <input type="text" id="display-name" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label>性別</label>
+                <div class="gender-selection">
+                    <input type="radio" id="female" name="gender" value="female" checked>
+                    <label for="female">女性</label>
+                    <input type="radio" id="male" name="gender" value="male">
+                    <label for="male">男性</label>
+                    <input type="radio" id="other" name="gender" value="other">
+                    <label for="other">その他</label>
+                </div>
+            </div>
+            <button id="next-to-upload-btn" class="btn-dark">撮影に進む</button>
+        </div>
     </div>
 
-    <!-- フェーズ3: 素材アップロード画面 -->
-    <div id="phase3" class="phase-container" style="display: none;">
-        <!-- ここにフェーズ3のコンテンツを書いていく -->
+    <div id="phase3" class="phase-container">
+        <div class="card">
+            <h2 class="form-title">写真・動画撮影</h2>
+            <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
+            <div class="upload-list">
+                <div id="item-front-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと写るように</span></div><button class="btn-outline">撮影する</button></div>
+                <div id="item-side-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さがわかるように</span></div><button class="btn-outline">撮影する</button></div>
+                <div id="item-back-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型がわかるように</span></div><button class="btn-outline">撮影する</button></div>
+                <div id="item-front-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：正面 (3秒)</strong><span>ゆっくりと左右に顔を動かす</span></div><button class="btn-outline">撮影する</button></div>
+                <div id="item-back-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動きがわかるように</span></div><button class="btn-outline">撮影する</button></div>
+            </div>
+            <button id="request-diagnosis-btn" class="btn-dark btn-disabled" disabled>AI診断をリクエストする</button>
+        </div>
     </div>
 
-    <!-- フェーズ4: AI診断結果画面 -->
-    <div id="phase4" class="phase-container" style="display: none;">
-        <!-- ここにフェーズ4のコンテンツを書いていく -->
-    </div>
-
-    <!-- フェーズ5: AIパーソナル提案画面 -->
-    <div id="phase5" class="phase-container" style="display: none;">
-        <!-- ここにフェーズ5のコンテンツを書いていく -->
-    </div>
-
-    <!-- フェーズ6: 合成画像生成画面 -->
-    <div id="phase6" class="phase-container" style="display: none;">
-        <!-- ここにフェーズ6のコンテンツを書いていく -->
-    </div>
-
+    <div id="phase3.5" class="phase-container"><div class="card"><div class="spinner"></div><h2 class="form-title" style="margin-top: 25px; margin-bottom: 10px;">AIが診断中です</h2><p class="description">診断リクエストを送信中...</p></div></div>
+    <div id="phase4" class="phase-container"><div class="card"><h2 class="form-title">AI診断結果</h2><div class="result-section"><h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3><div id="face-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3><div id="skeleton-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー診断</h3><div id="personal-color-results" class="result-grid"></div></div><button id="next-to-proposal-btn" class="btn-dark">AIからの提案を見る</button></div></div>
+    <div id="phase5" class="phase-container"><div class="card"><h2 class="form-title">AIパーソナル提案</h2><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル提案</h3><div id="hairstyle-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー提案</h3><div id="haircolor-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3><div class="top-stylist-comment"><p id="top-stylist-comment-text"></p></div></div><button id="next-to-generate-btn" class="btn-dark">合成画像を作成する</button></div></div>
+    <div id="phase6" class="phase-container"></div>
 
     <!-- LIFF SDK -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
+    <script src="https://static.line-scdn.net/liff/edge/2.23.0/sdk.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
-      // Import the functions you need from the SDKs you need
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-      // TODO: Add SDKs for Firebase products that you want to use
-      // https://firebase.google.com/docs/web/setup#available-libraries
-
-      // Your web app's Firebase configuration
+      import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
       const firebaseConfig = {
         apiKey: "AIzaSyBiOdjn2UWTSJS9HSyiLHMhCA6bHTqBvCw",
         authDomain: "yhd-dx.firebaseapp.com",
@@ -66,17 +83,14 @@
         appId: "1:232403760075:web:14c42501c107eb88e77c4e",
         measurementId: "G-LNYEYSP7RV"
       };
-
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
+      const storage = getStorage(app);
+      window.firebase = { storage, ref, uploadBytes, getDownloadURL };
     </script>
     
-    <!-- UIロジック -->
-    <script src="js/ui.js"></script>
-    <!-- メインのJavaScript -->
-    <script src="js/main.js"></script>
+    <!-- UIロジックとメインのJavaScript (defer属性で実行順を制御) -->
+    <script src="js/ui.js" defer></script>
+    <script src="js/main.js" defer></script>
 </body>
 </html>
-
-
 
