@@ -1,96 +1,81 @@
-/* YHD AIパーソナル診断 基本スタイルシート */
-
-/* :root にカラー変数を定義し、全体の色調を管理しやすくします */
 :root {
-  --tiffany-blue: #0abab5; /* ティファニーブルー */
-  --dark-text: #2c3e50;    /* 主要なテキスト・ボタン色 */
-  --light-text: #888;     /* 説明文などの薄いテキスト色 */
-  --background-color: #f4f7f6; /* アプリ全体の背景色 */
-  --white: #ffffff;         /* カード背景色 */
-  --light-gray: #e9ecef;   /* 入力欄などの背景色 */
+    --primary-color: #2dd4bf; /* ティファニーブルー */
+    --dark-color: #1e3a5f;    /* 濃い青 */
+    --text-color: #555;      /* 基本テキスト */
+    --bg-color: #f7fdfc;      /* 背景色 */
 }
 
-/* 基本的なリセットとフォント設定 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
 }
 
-html, body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  background-color: var(--background-color);
-  width: 100%;
-  min-height: 100vh;
-  /* flexboxで中央揃えを実現 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px 0; /* 上下に余白を追加 */
-}
-
-/* 各フェーズのコンテンツを囲うカードデザイン */
 .phase-container {
-  background-color: var(--white);
-  width: 90%;
-  max-width: 420px; /* スマートフォンの幅を想定 */
-  padding: 40px 30px;
-  border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  text-align: center;
+    width: 100%;
+    max-width: 420px; /* スマートフォンに最適な幅 */
 }
 
-/* --- 共通コンポーネントのスタイル --- */
-
-h1 {
-  color: var(--dark-text);
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 12px;
+.card {
+    background-color: #ffffff;
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box; /* paddingを含めた幅計算に */
 }
 
-p {
-  color: var(--light-text);
-  font-size: 14px;
-  line-height: 1.7;
-  margin-bottom: 30px;
+/* --- Phase 1 Styles --- */
+.logo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0 auto 25px auto; /* autoで中央揃え */
+    display: block; /* 中央揃えのためにblock要素に */
+    background-color: #f0f8ff;
 }
 
-/* ボタンの基本スタイル */
-button {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  border-radius: 50px; /* 丸みを帯びたボタン */
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  letter-spacing: 1px;
+.main-title {
+    font-size: 24px;
+    color: var(--dark-color);
+    font-weight: bold;
+    margin-bottom: 15px;
 }
 
-/* 主要なアクションボタン (ティファニーブルー) */
+.description {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+/* --- Button Styles --- */
 .btn-primary {
-  background-color: var(--tiffany-blue);
-  color: var(--white);
+    display: block; /* 中央揃えのためにblock要素に */
+    width: 100%; /* 横幅いっぱいに */
+    max-width: 300px; /* 最大幅を指定 */
+    margin: 0 auto; /* autoで中央揃え */
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 18px; /* 文字を少し大きく */
+    font-weight: bold;
+    padding: 15px 20px; /* 上下の余白を大きく */
+    border: none;
+    border-radius: 30px; /* 丸みを強く */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4); /* 影を追加 */
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  box-shadow: 0 4px 15px rgba(10, 186, 181, 0.4);
+    transform: translateY(-2px); /* ホバー時に少し浮き上がる */
+    box-shadow: 0 6px 20px rgba(45, 212, 191, 0.5);
 }
 
-/* ダークなボタン */
-.btn-dark {
-    background-color: var(--dark-text);
-    color: var(--white);
-}
-.btn-dark:hover {
-    opacity: 0.9;
-    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
-}
-
-/* --- フェーズ1 (オープニング画面) の固有スタイル --- */
-#phase1 h1 {
-    margin-top: 20px; /* ロゴとタイトルの間に余白 */
-}

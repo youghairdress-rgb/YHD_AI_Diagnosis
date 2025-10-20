@@ -8,19 +8,42 @@
 </head>
 <body>
     <!-- フェーズ1: オープニング画面 -->
-    <div id="phase1" class="phase-container">
-        <!-- ここにフェーズ1のコンテンツを書いていく -->
-        <h1>YHD AI Diagnosis</h1>
-        <p>AIが分析し、最適なアドバイスを伝えます！</p>
-        <button id="start-btn">診断を始める</button>
+    <div id="phase1" class="phase-container" style="display: none;">
+        <div class="card">
+            <img src="images/YHDlogo2.gif" alt="YHD AI Diagnosis Logo" class="logo">
+            <h1 class="main-title">YHD × AI 『似合わせ』診断</h1>
+            <p class="description">
+                お客様の『似合う』を実現するために<br>
+                AIが分析し、最適なアドバイスを伝えます！
+            </p>
+            <button id="start-btn" class="btn-primary">診断を始める</button>
+        </div>
     </div>
 
-    <!-- フェーズ2: プロフィール入力画面 (最初は非表示) -->
+    <!-- フェーズ2: プロフィール入力画面 -->
     <div id="phase2" class="phase-container" style="display: none;">
         <!-- ここにフェーズ2のコンテンツを書いていく -->
     </div>
 
-    <!-- (以降、フェーズ3, 4, 5, 6 のコンテナを準備) -->
+    <!-- フェーズ3: 素材アップロード画面 -->
+    <div id="phase3" class="phase-container" style="display: none;">
+        <!-- ここにフェーズ3のコンテンツを書いていく -->
+    </div>
+
+    <!-- フェーズ4: AI診断結果画面 -->
+    <div id="phase4" class="phase-container" style="display: none;">
+        <!-- ここにフェーズ4のコンテンツを書いていく -->
+    </div>
+
+    <!-- フェーズ5: AIパーソナル提案画面 -->
+    <div id="phase5" class="phase-container" style="display: none;">
+        <!-- ここにフェーズ5のコンテンツを書いていく -->
+    </div>
+
+    <!-- フェーズ6: 合成画像生成画面 -->
+    <div id="phase6" class="phase-container" style="display: none;">
+        <!-- ここにフェーズ6のコンテンツを書いていく -->
+    </div>
 
 
     <!-- LIFF SDK -->
@@ -38,8 +61,7 @@
         apiKey: "AIzaSyBiOdjn2UWTSJS9HSyiLHMhCA6bHTqBvCw",
         authDomain: "yhd-dx.firebaseapp.com",
         projectId: "yhd-dx",
-        // ご指摘の通り、こちらが正しい値でした。
-        storageBucket: "yhd-dx.firebasestorage.app", 
+        storageBucket: "yhd-dx.firebasestorage.app",
         messagingSenderId: "232403760075",
         appId: "1:232403760075:web:14c42501c107eb88e77c4e",
         measurementId: "G-LNYEYSP7RV"
@@ -49,7 +71,12 @@
       const app = initializeApp(firebaseConfig);
     </script>
     
+    <!-- UIロジック -->
+    <script src="js/ui.js"></script>
     <!-- メインのJavaScript -->
     <script src="js/main.js"></script>
 </body>
 </html>
+
+
+
