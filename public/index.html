@@ -57,7 +57,7 @@
         </div>
     </div>
     <div id="phase3" class="phase-container">
-        <div class="card">
+         <div class="card">
             <h2 class="form-title">写真・動画撮影</h2>
             <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
             <div class="upload-list">
@@ -75,113 +75,80 @@
     <div id="phase5" class="phase-container"><div class="card"><h2 class="form-title">AIパーソナル提案</h2><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル提案</h3><div id="hairstyle-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー提案</h3><div id="haircolor-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3><div class="top-stylist-comment"><p id="top-stylist-comment-text"></p></div></div><button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成する</button></div></div>
     <div id="phase6" class="phase-container"></div>
 
-    <!-- UIロジックとメインのJavaScript (先に読み込む) -->
+    <!-- UIロジックとメインのJavaScript -->
     <script src="js/ui.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/main.js"></script> <!-- AppState, main() などを含む -->
 
     <!-- 初期化処理 -->
     <script>
-      // ★★★ AppState をここで定義 ★★★
-      const AppState = {
-        firebase: null, // Firebase services (storage, remoteConfig)
-        liffId: '',     // LIFF ID from Remote Config
-        userProfile: { displayName: "ゲスト", userId: `guest_${Date.now()}` }, // Default guest profile
-        gender: 'female', // Default gender
-        uploadedFiles: {}, // key: item-id, value: File object
-        uploadedFileUrls: {}, // key: item-id, value: Firebase Storage URL
-        selectedProposal: { // User's selection in Phase 5
-            hairstyle: null,
-            haircolor: null
-        },
-        aiDiagnosisResult: null, // Result from Phase 4
-        aiProposal: null,        // Proposal from Phase 5
-        generatedImageUrl: null  // Result image URL from Phase 6
-      };
-
-      // エラー表示用の関数 (変更なし)
-      function initializeAppFailure(errorMessage) {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) loadingScreen.style.display = 'none';
-            const bodyElement = document.body;
-            if (!document.querySelector('.error-message')) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.style.padding = '20px';
-                errorDiv.style.textAlign = 'center';
-                errorDiv.style.color = 'red';
-                errorDiv.innerHTML = `<h2>アプリケーションエラー</h2><p>${escapeHtml(errorMessage)}</p><p>時間をおいて再度お試しください。</p>`;
-                bodyElement.innerHTML = '';
-                bodyElement.appendChild(errorDiv);
-                bodyElement.style.display = 'flex';
-                bodyElement.style.justifyContent = 'center';
-                bodyElement.style.alignItems = 'center';
-                bodyElement.style.minHeight = '100vh';
-            } else {
-                 const errorP = document.querySelector('.error-message p:first-of-type');
-                 if(errorP) errorP.innerHTML = escapeHtml(errorMessage);
-            }
-      }
-      function escapeHtml(unsafe) {
-          if (typeof unsafe !== 'string') return '';
-          return unsafe
-               .replace(/&/g, "&amp;")
-               .replace(/</g, "&lt;")
-               .replace(/>/g, "&gt;")
-               .replace(/"/g, "&quot;")
-               .replace(/'/g, "&#039;");
-      }
+      // ★★★ エラー表示関数 initializeAppFailure と escapeHtml は main.js に移動 ★★★
 
       // Firebase 初期化完了イベントを待ってから main を呼び出す
       document.addEventListener('DOMContentLoaded', () => {
           console.log("DOMContentLoaded event fired.");
-          document.addEventListener('firebase-initialized', () => {
-              console.log("firebase-initialized event received.");
+          let firebaseInitialized = false;
+          let mainCalled = false; // main関数が呼ばれたかどうかのフラグ
+
+          const tryInitializeApp = () => {
+              // 既に呼び出し済み、または main.js が未ロードなら何もしない
+              if (mainCalled || typeof main !== 'function') return;
+
+              console.log("Attempting to initialize application...");
               try {
                   if (typeof firebase === 'undefined') {
+                      if (!firebaseInitialized) {
+                          console.log("Firebase object not ready yet, waiting for firebase-initialized...");
+                          return; // まだ firebase-initialized が来ていないので待機
+                      }
+                      // firebase-initialized 後も未定義ならエラー
                       throw new Error("Firebase object is still undefined after firebase-initialized event.");
                   }
 
-                  // Firebaseサービスを AppState に格納 (window.firebaseGlobal は不要に)
                   const storage = firebase.storage();
                   const remoteConfig = firebase.remoteConfig();
                   console.log("Firebase storage and remoteConfig objects obtained.");
 
                   remoteConfig.settings = {
-                      minimumFetchIntervalMillis: 3600000,
-                      fetchTimeoutMillis: 10000
+                      minimumFetchIntervalMillis: 3600000, // 1 hour
+                      fetchTimeoutMillis: 10000 // 10 seconds
                   };
                   remoteConfig.defaultConfig = {
-                      'liff_id': '2008345232-zq4A3Vg3' // フォールバック
+                      'liff_id': '2008345232-zq4A3Vg3' // ★★★ 新しい LIFF ID ★★★
                   };
                   console.log("Remote Config settings applied.");
 
-                  // ★★★ AppState.firebase にサービスを格納 ★★★
-                  AppState.firebase = { storage, remoteConfig };
-                  console.log("Firebase services assigned to AppState.firebase.");
-
-                  // main.js の main 関数を実行
-                  if (typeof main === 'function') {
-                      console.log("Calling main function...");
-                      main(); // AppState はこの時点で定義されている
-                  } else {
-                      throw new Error("main function not found in main.js.");
-                  }
+                  console.log("Calling main function with Firebase services...");
+                  main({ storage, remoteConfig }); // Firebaseサービスを渡す
+                  mainCalled = true; // 呼び出し済みフラグ
 
               } catch (error) {
                   console.error("Error during Firebase setup or main() call:", error);
-                  initializeAppFailure("アプリケーションの初期化中にエラーが発生しました: " + error.message);
+                  // main.js の initializeAppFailure を呼ぶ試み
+                  if (typeof initializeAppFailure === 'function') {
+                    initializeAppFailure("アプリケーションの初期化中にエラーが発生しました: " + error.message);
+                  } else {
+                    // フォールバックで最低限のエラー表示
+                    document.body.innerHTML = `<div style="color:red;padding:20px;">初期化エラー: ${error.message}</div>`;
+                  }
+                  mainCalled = true; // エラーでも呼び出し済み
               }
+          };
+
+          // firebase-initialized イベントリスナー
+          document.addEventListener('firebase-initialized', () => {
+              firebaseInitialized = true;
+              console.log("firebase-initialized event received.");
+              tryInitializeApp(); // Firebase初期化後にアプリ初期化を試みる
           });
 
-          // init.js が既に完了していた場合のフォールバック
-          if (typeof firebase !== 'undefined' && !AppState.firebase) { // AppState.firebase でチェック
-              console.log("Firebase object already defined on DOMContentLoaded, simulating firebase-initialized.");
-              const event = new Event('firebase-initialized');
-              document.dispatchEvent(event);
-          } else if (typeof firebase === 'undefined') {
-              console.log("Firebase object not defined yet, waiting for firebase-initialized event...");
+          // DOMContentLoaded の時点で firebase が利用可能かチェックし、可能なら初期化試行
+          if (typeof firebase !== 'undefined') {
+              console.log("Firebase object already defined on DOMContentLoaded. Attempting init...");
+              // firebase-initialized が既に発火済みの場合もあるため、直接試行
+              tryInitializeApp();
+          } else {
+              console.log("Firebase object not defined yet on DOMContentLoaded, waiting for firebase-initialized event...");
           }
-
       });
     </script>
 </body>

@@ -1,141 +1,26 @@
-// ★★★ AppState の定義を index.html に移動したため削除 ★★★
-// const AppState = { ... };
+// アプリケーションの状態管理オブジェクト
+const AppState = {
+  firebase: null, // Firebase services (storage, remoteConfig)
+  liffId: '',     // LIFF ID from Remote Config
+  userProfile: { displayName: "ゲスト", userId: `guest_${Date.now()}` }, // Default guest profile
+  gender: 'female', // Default gender
+  uploadedFiles: {}, // key: item-id, value: File object
+  uploadedFileUrls: {}, // key: item-id, value: Firebase Storage URL
+  selectedProposal: { // User's selection in Phase 5
+      hairstyle: null,
+      haircolor: null
+  },
+  aiDiagnosisResult: null, // Result from Phase 4
+  aiProposal: null,        // Proposal from Phase 5
+  generatedImageUrl: null  // Result image URL from Phase 6
+};
 
-// ★★★ index.html の初期化スクリプトから直接呼ばれる ★★★
-async function main() {
-    console.log("[main] Function started.");
-    let loadingScreenHidden = false;
-
-    // ★★★ AppState が定義されているか念のため確認 ★★★
-    if (typeof AppState === 'undefined') {
-         console.error("[main] AppState is not defined! Check index.html.");
-         // AppStateがないと続行できないのでエラー表示して終了
-         initializeAppFailure("Internal Error: AppState is not defined.");
-         // ローディングを手動で隠す試み
-         const loading = document.getElementById('loading-screen');
-         if(loading) loading.style.display = 'none';
-         return; // 処理中断
-    }
-
-    try {
-        // Firebaseサービスの存在確認 (AppState.firebase を使用)
-        console.log("[main] Checking for Firebase services in AppState...");
-        if (!AppState.firebase || !AppState.firebase.storage || !AppState.firebase.remoteConfig) {
-            console.error('[main] Firebase services not found in AppState.firebase.');
-            throw new Error("Firebaseサービスの準備が完了していません (AppState.firebase is missing)。");
-        }
-        console.log("[main] Firebase services found in AppState.");
-
-        // Remote ConfigからLIFF IDを取得 (変更なし)
-        console.log("[main] Fetching Remote Config...");
-        await AppState.firebase.remoteConfig.ensureInitialized();
-        console.log("[main] Remote Config ensureInitialized completed.");
-        const fetched = await AppState.firebase.remoteConfig.fetchAndActivate();
-        console.log("[main] Remote Config fetchAndActivate completed. Fetched:", fetched);
-        AppState.liffId = AppState.firebase.remoteConfig.getString('liff_id');
-        console.log("[main] Fetched LIFF ID from Remote Config:", AppState.liffId);
-
-        if (!AppState.liffId) {
-             console.warn("[main] LIFF ID from Remote Config is empty, using default.");
-             AppState.liffId = AppState.firebase.remoteConfig.defaultConfig['liff_id'];
-             if (!AppState.liffId) {
-                console.error("[main] Default LIFF ID is also unavailable.");
-                throw new Error("LIFF IDをRemote Configから取得できませんでした。");
-             }
-        }
-        console.log("[main] Using LIFF ID:", AppState.liffId);
-
-        // LIFF SDKの存在確認 (変更なし)
-        console.log("[main] Checking for LIFF SDK object...");
-        if (typeof liff === 'undefined') {
-            console.error("[main] LIFF SDK object (liff) is undefined.");
-            throw new Error('LIFF SDKが見つかりません。sdk.jsの読み込みに失敗 (403 Forbidden?) している可能性があります。LINE Developers Consoleの設定を確認してください。');
-        }
-        console.log("[main] LIFF SDK object found.");
-
-        // LIFFを初期化 (変更なし)
-        console.log(`[main] Initializing LIFF with ID: ${AppState.liffId}...`);
-        await liff.init({ liffId: AppState.liffId });
-        console.log("[main] LIFF initialized successfully.");
-
-        // LIFFログイン状態確認とプロファイル取得 (変更なし)
-        console.log("[main] Checking LIFF login status...");
-        if (liff.isLoggedIn()) {
-            console.log("[main] LIFF user is logged in. Getting profile...");
-            const profile = await liff.getProfile();
-            console.log("[main] User profile obtained:", profile);
-            AppState.userProfile = profile;
-        } else {
-            console.log("[main] LIFF user not logged in. Proceeding as guest.");
-             AppState.userProfile = { displayName: "ゲスト", userId: `guest_${Date.now()}` };
-        }
-
-        // UI初期化（成功時） (変更なし)
-        console.log("[main] Calling initializeAppState for UI setup.");
-        initializeAppState();
-
-        // 正常終了時にローディング画面を隠す (変更なし)
-        hideLoadingScreen();
-        loadingScreenHidden = true;
-
-    } catch (err) {
-        console.error("[main] Initialization failed inside main try block:", err);
-        // ★★★ AppState が存在する前提でエラー処理 ★★★
-        if (typeof AppState !== 'undefined') {
-            hideLoadingScreen(); // 先に隠す
-            loadingScreenHidden = true;
-            initializeAppFailure(`アプリの初期化に失敗しました: ${err.message || '不明なエラーが発生しました。コンソールを確認してください。'}`);
-        } else {
-            // AppState すらない場合は直接DOM操作でエラー表示試行
-            const loading = document.getElementById('loading-screen');
-            if(loading) loading.style.display = 'none';
-            document.body.innerHTML = '<div style="color:red; padding: 20px; text-align: center;"><h2>致命的なエラー</h2><p>AppStateが定義されていません。</p></div>';
-            document.body.style.display = 'flex';
-            document.body.style.justifyContent = 'center';
-            document.body.style.alignItems = 'center';
-            document.body.style.minHeight = '100vh';
-        }
-
-    } finally {
-        console.log("[main] Entering finally block.");
-        if (!loadingScreenHidden) {
-             console.log("[main] Hiding loading screen in finally block.");
-             hideLoadingScreen();
-        }
-    }
-}
-
-// --- initializeAppState, hideLoadingScreen, initializeAppFailure ... 以降の関数は変更なし ---
-// (AppStateへのアクセスはそのまま利用可能)
-// ...
-
-// アプリケーションUIの初期化 (変更なし)
-function initializeAppState() {
-    console.log("[initializeAppState] Initializing app UI state with profile:", AppState.userProfile);
-    setupEventListeners();
-    changePhase('phase1'); // 最初の画面表示
-    document.body.style.alignItems = 'flex-start'; // bodyのスタイルを元に戻す
-    console.log("[initializeAppState] UI Initialized, phase1 shown.");
-}
-
-// ローディング画面を非表示にする共通関数 (変更なし)
-function hideLoadingScreen() {
-    const loadingScreen = document.getElementById('loading-screen');
-    if (loadingScreen) {
-        if (loadingScreen.style.display !== 'none') {
-            console.log("[hideLoadingScreen] Hiding loading screen now.");
-            loadingScreen.style.display = 'none';
-        } else {
-            console.log("[hideLoadingScreen] Loading screen was already hidden.");
-        }
-    } else {
-        console.error("[hideLoadingScreen] Loading screen element (#loading-screen) not found in the DOM.");
-    }
-}
-
-// 初期化失敗時の処理 (変更なし - AppStateは使える前提)
+// ★★★ エラー表示関数とHTMLエスケープ関数をここに移動 ★★★
 function initializeAppFailure(errorMessage) {
     console.error("[initializeAppFailure] Displaying failure message:", errorMessage);
+
+    // ローディング画面を隠す試み（エラー表示前）
+    hideLoadingScreen();
 
     const bodyElement = document.body;
     // エラーメッセージ要素がなければ作成
@@ -147,35 +32,159 @@ function initializeAppFailure(errorMessage) {
         errorDiv.style.color = 'red';
         errorDiv.innerHTML = `
             <h2>アプリケーションエラー</h2>
-            <p>アプリの起動に必要な処理中にエラーが発生しました。</p>
-            <p>詳細: ${escapeHtml(errorMessage)}</p>
+            <p>${escapeHtml(errorMessage)}</p>
             <p>時間をおいて再度お試しいただくか、開発者にご連絡ください。</p>
             <p style="font-size: 0.8em; color: #666;">(LIFF SDKの読み込みエラーの場合、LINE Developers Consoleの設定を確認してください)</p>
         `;
-         // bodyをクリアする前にローディングを非表示にする
-         const loadingScreen = document.getElementById('loading-screen');
-         if (loadingScreen) loadingScreen.style.display = 'none';
 
-        bodyElement.innerHTML = '';
+        bodyElement.innerHTML = ''; // 既存のコンテンツをクリア
         bodyElement.appendChild(errorDiv);
+        // スタイルを再適用
         bodyElement.style.display = 'flex';
         bodyElement.style.justifyContent = 'center';
         bodyElement.style.alignItems = 'center';
         bodyElement.style.minHeight = '100vh';
+        bodyElement.style.backgroundColor = 'var(--bg-color)'; // 背景色を戻す
     } else {
          // 既にエラーメッセージが表示されている場合は内容を更新
-         const errorP = document.querySelector('.error-message p:nth-of-type(2)'); // 2番目のpタグを更新
-         if(errorP) errorP.innerHTML = `詳細: ${escapeHtml(errorMessage)}`;
+         const errorP = document.querySelector('.error-message p:first-of-type');
+         if(errorP) errorP.innerHTML = escapeHtml(errorMessage);
     }
 }
 
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    // ★★★ 構文エラーの可能性がある正規表現を修正 ★★★
+    // replace('/', '&sol;') を追加
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;")
+         .replace(/\//g, "&#x2F;"); // スラッシュもエスケープ
+}
+
+
+// index.html から Firebase サービスを受け取って初期化を開始
+async function main(firebaseServices) {
+    console.log("[main] Function started.");
+    let loadingScreenHidden = false;
+
+    try {
+        // 引数から Firebase サービスを AppState に格納
+        console.log("[main] Receiving Firebase services...");
+        if (!firebaseServices || !firebaseServices.storage || !firebaseServices.remoteConfig) {
+            console.error('[main] Firebase services argument is invalid.');
+            throw new Error("Firebaseサービスの準備が完了していません (Invalid argument)。");
+        }
+        AppState.firebase = firebaseServices;
+        console.log("[main] Firebase services assigned to AppState.");
+
+        // Remote ConfigからLIFF IDを取得
+        console.log("[main] Fetching Remote Config...");
+        await AppState.firebase.remoteConfig.ensureInitialized();
+        console.log("[main] Remote Config ensureInitialized completed.");
+        const fetched = await AppState.firebase.remoteConfig.fetchAndActivate();
+        console.log("[main] Remote Config fetchAndActivate completed. Fetched:", fetched);
+        AppState.liffId = AppState.firebase.remoteConfig.getString('liff_id');
+        console.log("[main] Fetched LIFF ID from Remote Config:", AppState.liffId);
+
+        if (!AppState.liffId) {
+             console.warn("[main] LIFF ID from Remote Config is empty, using default from defaultConfig.");
+             AppState.liffId = AppState.firebase.remoteConfig.defaultConfig['liff_id'];
+             if (!AppState.liffId) {
+                console.error("[main] Default LIFF ID is also unavailable.");
+                throw new Error("LIFF IDをRemote Configから取得できませんでした。");
+             }
+        }
+        console.log("[main] Using LIFF ID for init:", AppState.liffId);
+
+        // LIFF SDKの存在確認
+        console.log("[main] Checking for LIFF SDK object...");
+        if (typeof liff === 'undefined') {
+            console.error("[main] LIFF SDK object (liff) is undefined. Check network tab for sdk.js loading errors (e.g., 403 Forbidden).");
+            throw new Error('LIFF SDKが見つかりません。sdk.jsの読み込みに失敗している可能性があります。LINE Developers Consoleの設定（Endpoint URL, Callback URL）やネットワーク接続を確認してください。');
+        }
+        console.log("[main] LIFF SDK object found.");
+
+        // LIFFを初期化
+        console.log(`[main] Initializing LIFF with ID: ${AppState.liffId}...`);
+        await liff.init({ liffId: AppState.liffId });
+        console.log("[main] LIFF initialized successfully.");
+
+        // LIFFログイン状態確認とプロファイル取得
+        console.log("[main] Checking LIFF login status...");
+        if (liff.isLoggedIn()) {
+            console.log("[main] LIFF user is logged in. Getting profile...");
+            const profile = await liff.getProfile();
+            console.log("[main] User profile obtained:", profile);
+            AppState.userProfile = profile;
+        } else {
+            console.log("[main] LIFF user not logged in. Proceeding as guest.");
+             AppState.userProfile = { displayName: "ゲスト", userId: `guest_${Date.now()}` };
+             // 必要であればここで liff.login() を呼び出すことも検討
+        }
+
+        // UI初期化（成功時）
+        console.log("[main] Calling initializeAppState for UI setup.");
+        initializeAppState();
+
+        // 正常終了時にローディング画面を隠す
+        hideLoadingScreen();
+        loadingScreenHidden = true;
+
+    } catch (err) {
+        console.error("[main] Initialization failed inside main try block:", err);
+        if (err.stack) {
+             console.error("[main] Error stack:", err.stack);
+        }
+        // hideLoadingScreen(); // finallyで処理するため不要
+        // loadingScreenHidden = true; // finallyで処理するため不要
+        initializeAppFailure(`アプリの初期化に失敗しました: ${err.message || '不明なエラーが発生しました。コンソールを確認してください。'}`);
+
+    } finally {
+        console.log("[main] Entering finally block.");
+        // finally ブロックで確実にローディング画面を隠す
+        if (!loadingScreenHidden) {
+             console.warn("[main] Loading screen was potentially not hidden in try/catch. Hiding now.");
+             hideLoadingScreen();
+        }
+    }
+}
+
+// --- initializeAppState, hideLoadingScreen ... 以降の関数は変更なし ---
+
+// アプリケーションUIの初期化
+function initializeAppState() {
+    console.log("[initializeAppState] Initializing app UI state with profile:", AppState.userProfile);
+    setupEventListeners();
+    changePhase('phase1'); // 最初の画面表示
+    document.body.style.alignItems = 'flex-start'; // bodyのスタイルを元に戻す
+    console.log("[initializeAppState] UI Initialized, phase1 shown.");
+}
+
+// ローディング画面を非表示にする共通関数
+function hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (loadingScreen) {
+        if (loadingScreen.style.display !== 'none') {
+            console.log("[hideLoadingScreen] Hiding loading screen now.");
+            loadingScreen.style.display = 'none';
+        } else {
+            // console.log("[hideLoadingScreen] Loading screen was already hidden."); // 冗長なのでコメントアウト
+        }
+    } else {
+        // このエラーは initializeAppFailure で body がクリアされた場合に発生する可能性がある
+        console.warn("[hideLoadingScreen] Loading screen element (#loading-screen) not found in the DOM (possibly removed by error handler).");
+    }
+}
 
 // --- setupEventListeners 以降の関数は変更なし ---
 // ... (previous code remains the same) ...
 
 function setupEventListeners() {
     console.log("[setupEventListeners] Setting up event listeners.");
-    // ... (rest of the function remains the same) ...
     // Phase 1 -> Phase 2
     document.getElementById('start-btn')?.addEventListener('click', () => {
         document.getElementById('display-name').value = AppState.userProfile.displayName || "ゲスト";
@@ -242,7 +251,6 @@ function setupEventListeners() {
 }
 
 function setupProposalCardListeners() {
-    // ... (変更なし) ...
     const hairstyleContainer = document.getElementById('hairstyle-proposal');
     const haircolorContainer = document.getElementById('haircolor-proposal');
 
@@ -280,7 +288,6 @@ function setupProposalCardListeners() {
 }
 
 async function handleDiagnosisRequest() {
-    // ... (変更なし) ...
      const btn = document.getElementById('request-diagnosis-btn');
     btn.disabled = true;
     btn.textContent = 'アップロード中... (0/5)';
@@ -314,6 +321,11 @@ async function handleDiagnosisRequest() {
         );
         console.log('[handleDiagnosisRequest] AI Response:', aiResponse);
 
+        // 結果をAppStateに保存（必要に応じて）
+        AppState.aiDiagnosisResult = aiResponse?.result;
+        AppState.aiProposal = aiResponse?.proposal;
+
+
         displayDiagnosisResult(aiResponse?.result);
         displayProposalResult(aiResponse?.proposal);
 
@@ -334,7 +346,6 @@ async function handleDiagnosisRequest() {
 }
 
 function displayDiagnosisResult(result) {
-    // ... (変更なし) ...
      const mapping = {
         face: { container: document.getElementById('face-results'), labels: { nose: '鼻', mouth: '口', eyes: '目', eyebrows: '眉', forehead: 'おでこ' } },
         skeleton: { container: document.getElementById('skeleton-results'), labels: { neckLength: '首の長さ', faceShape: '顔の形', bodyLine: 'ボディライン', shoulderLine: '肩のライン' } },
@@ -353,6 +364,7 @@ function displayDiagnosisResult(result) {
 
         let hasData = false;
         for (const key in labels) {
+            // Check if the key exists in the result object for this category
             if (Object.hasOwnProperty.call(result[category], key) && labels[key]) {
                 const value = result[category][key];
                 container.innerHTML += `
@@ -369,7 +381,6 @@ function displayDiagnosisResult(result) {
 
 
 function displayProposalResult(proposal) {
-    // ... (変更なし) ...
     const hairstyleContainer = document.getElementById('hairstyle-proposal');
     const haircolorContainer = document.getElementById('haircolor-proposal');
     const commentContainer = document.getElementById('top-stylist-comment-text');
@@ -419,7 +430,6 @@ function displayProposalResult(proposal) {
 
 
 function checkAllFilesUploaded() {
-    // ... (変更なし) ...
     const requiredFilesCount = 5;
     const uploadedCount = Object.keys(AppState.uploadedFiles).length;
     const isReady = uploadedCount === requiredFilesCount;
@@ -433,7 +443,6 @@ function checkAllFilesUploaded() {
 }
 
 function checkProposalSelection() {
-    // ... (変更なし) ...
      const btn = document.getElementById('next-to-generate-btn');
     const isReady = !!AppState.selectedProposal.hairstyle && !!AppState.selectedProposal.haircolor;
 
@@ -445,7 +454,6 @@ function checkProposalSelection() {
 
 
 async function uploadFileToStorage(file, itemName) {
-    // ... (変更なし) ...
     if (!AppState.firebase || !AppState.firebase.storage) {
         throw new Error("Firebase Storage is not initialized.");
     }
@@ -467,7 +475,6 @@ async function uploadFileToStorage(file, itemName) {
 
 
 async function requestAiDiagnosis(fileUrls, profile, gender) {
-    // ... (変更なし) ...
      const functionUrl = '/requestDiagnosis'; // Use relative path for Functions rewrite
     try {
         const response = await fetch(functionUrl, {
@@ -482,7 +489,7 @@ async function requestAiDiagnosis(fileUrls, profile, gender) {
         const data = await response.json();
          // --- ダミー提案データ (バックエンド未実装時のフォールバック) ---
         if (!data.proposal) {
-            console.warn("Backend did not return 'proposal', using dummy data.");
+            console.warn("[requestAiDiagnosis] Backend did not return 'proposal', using dummy data.");
             data.proposal = {
                 hairstyles: [{ name: "ダミー スタイル1", description: "ふんわりボブスタイル" }, { name: "ダミー スタイル2", description: "クールなショートレイヤー" }],
                 haircolors: [{ name: "ダミー カラー1", description: "明るめのアッシュブラウン" }, { name: "ダミー カラー2", description: "深みのあるカシスレッド" }],
@@ -500,17 +507,6 @@ async function requestAiDiagnosis(fileUrls, profile, gender) {
 
 // 他の関数 (displayDiagnosisResult, displayProposalResult など) は変更なし
 // ...
-
-function escapeHtml(unsafe) {
-    // ... (変更なし) ...
-    if (typeof unsafe !== 'string') return '';
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
-}
 
 // ui.js で定義されている想定
 // function changePhase(phaseId) { ... }
