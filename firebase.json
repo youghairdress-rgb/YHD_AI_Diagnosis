@@ -8,12 +8,30 @@
     ],
     "rewrites": [
       {
+        "source": "/requestDiagnosis",
+        "function": "requestDiagnosis"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
-    ]
+    ],
+    "headers": [ {
+      "source": "**/*.@(js|css)",
+      "headers": [ {
+        "key": "Cache-Control",
+        "value": "max-age=31536000"
+       } ]
+     }, {
+       "source": "**/*.@(jpg|jpeg|gif|png|svg|webp)",
+       "headers": [ {
+         "key": "Cache-Control",
+         "value": "max-age=604800"
+       } ]
+     } ]
   },
   "functions": {
-    "source": "functions"
+    "source": "functions",
+    "runtime": "nodejs20" // Node.js 20 LTSを指定
   }
 }

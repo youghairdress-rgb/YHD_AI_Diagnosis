@@ -1,214 +1,517 @@
-// DOMが完全に読み込まれたら、アプリケーションを開始する
-document.addEventListener('DOMContentLoaded', main);
+// ★★★ AppState の定義を index.html に移動したため削除 ★★★
+// const AppState = { ... };
 
+// ★★★ index.html の初期化スクリプトから直接呼ばれる ★★★
 async function main() {
-    console.log("DOM Content Loaded. Starting application.");
+    console.log("[main] Function started.");
+    let loadingScreenHidden = false;
 
-    // LIFFが利用可能かチェック
-    if (typeof liff === 'undefined') {
-        console.error('LIFF SDK is not loaded.');
-        alert('アプリの読み込みに失敗しました。LIFF SDKが見つかりません。');
-        return;
+    // ★★★ AppState が定義されているか念のため確認 ★★★
+    if (typeof AppState === 'undefined') {
+         console.error("[main] AppState is not defined! Check index.html.");
+         // AppStateがないと続行できないのでエラー表示して終了
+         initializeAppFailure("Internal Error: AppState is not defined.");
+         // ローディングを手動で隠す試み
+         const loading = document.getElementById('loading-screen');
+         if(loading) loading.style.display = 'none';
+         return; // 処理中断
     }
 
     try {
-        // LIFFを初期化
-        console.log("Initializing LIFF...");
-        await liff.init({ liffId: "2008029428-DZNnAbNl" });
-        console.log("LIFF initialized.");
-        
-        // ユーザープロファイルを取得
-        const profile = await liff.getProfile();
-        console.log("User profile:", profile);
+        // Firebaseサービスの存在確認 (AppState.firebase を使用)
+        console.log("[main] Checking for Firebase services in AppState...");
+        if (!AppState.firebase || !AppState.firebase.storage || !AppState.firebase.remoteConfig) {
+            console.error('[main] Firebase services not found in AppState.firebase.');
+            throw new Error("Firebaseサービスの準備が完了していません (AppState.firebase is missing)。");
+        }
+        console.log("[main] Firebase services found in AppState.");
 
-        // アプリケーションの状態をセットアップ
-        initializeAppState(profile);
+        // Remote ConfigからLIFF IDを取得 (変更なし)
+        console.log("[main] Fetching Remote Config...");
+        await AppState.firebase.remoteConfig.ensureInitialized();
+        console.log("[main] Remote Config ensureInitialized completed.");
+        const fetched = await AppState.firebase.remoteConfig.fetchAndActivate();
+        console.log("[main] Remote Config fetchAndActivate completed. Fetched:", fetched);
+        AppState.liffId = AppState.firebase.remoteConfig.getString('liff_id');
+        console.log("[main] Fetched LIFF ID from Remote Config:", AppState.liffId);
+
+        if (!AppState.liffId) {
+             console.warn("[main] LIFF ID from Remote Config is empty, using default.");
+             AppState.liffId = AppState.firebase.remoteConfig.defaultConfig['liff_id'];
+             if (!AppState.liffId) {
+                console.error("[main] Default LIFF ID is also unavailable.");
+                throw new Error("LIFF IDをRemote Configから取得できませんでした。");
+             }
+        }
+        console.log("[main] Using LIFF ID:", AppState.liffId);
+
+        // LIFF SDKの存在確認 (変更なし)
+        console.log("[main] Checking for LIFF SDK object...");
+        if (typeof liff === 'undefined') {
+            console.error("[main] LIFF SDK object (liff) is undefined.");
+            throw new Error('LIFF SDKが見つかりません。sdk.jsの読み込みに失敗 (403 Forbidden?) している可能性があります。LINE Developers Consoleの設定を確認してください。');
+        }
+        console.log("[main] LIFF SDK object found.");
+
+        // LIFFを初期化 (変更なし)
+        console.log(`[main] Initializing LIFF with ID: ${AppState.liffId}...`);
+        await liff.init({ liffId: AppState.liffId });
+        console.log("[main] LIFF initialized successfully.");
+
+        // LIFFログイン状態確認とプロファイル取得 (変更なし)
+        console.log("[main] Checking LIFF login status...");
+        if (liff.isLoggedIn()) {
+            console.log("[main] LIFF user is logged in. Getting profile...");
+            const profile = await liff.getProfile();
+            console.log("[main] User profile obtained:", profile);
+            AppState.userProfile = profile;
+        } else {
+            console.log("[main] LIFF user not logged in. Proceeding as guest.");
+             AppState.userProfile = { displayName: "ゲスト", userId: `guest_${Date.now()}` };
+        }
+
+        // UI初期化（成功時） (変更なし)
+        console.log("[main] Calling initializeAppState for UI setup.");
+        initializeAppState();
+
+        // 正常終了時にローディング画面を隠す (変更なし)
+        hideLoadingScreen();
+        loadingScreenHidden = true;
 
     } catch (err) {
-        console.error("LIFF initialization failed", err);
-        alert(`LIFFの初期化に失敗しました: ${err}`);
-        // 失敗してもゲストとして続行
-        initializeAppState({ displayName: "ゲスト", userId: `guest_${Date.now()}` });
+        console.error("[main] Initialization failed inside main try block:", err);
+        // ★★★ AppState が存在する前提でエラー処理 ★★★
+        if (typeof AppState !== 'undefined') {
+            hideLoadingScreen(); // 先に隠す
+            loadingScreenHidden = true;
+            initializeAppFailure(`アプリの初期化に失敗しました: ${err.message || '不明なエラーが発生しました。コンソールを確認してください。'}`);
+        } else {
+            // AppState すらない場合は直接DOM操作でエラー表示試行
+            const loading = document.getElementById('loading-screen');
+            if(loading) loading.style.display = 'none';
+            document.body.innerHTML = '<div style="color:red; padding: 20px; text-align: center;"><h2>致命的なエラー</h2><p>AppStateが定義されていません。</p></div>';
+            document.body.style.display = 'flex';
+            document.body.style.justifyContent = 'center';
+            document.body.style.alignItems = 'center';
+            document.body.style.minHeight = '100vh';
+        }
+
+    } finally {
+        console.log("[main] Entering finally block.");
+        if (!loadingScreenHidden) {
+             console.log("[main] Hiding loading screen in finally block.");
+             hideLoadingScreen();
+        }
     }
 }
 
-function initializeAppState(userProfile) {
-    // グローバルでアクセスできるようにセット
-    window.userProfile = userProfile;
-    window.uploadedFiles = {};
-    window.uploadedFileUrls = {};
-    window.selectedProposal = {};
+// --- initializeAppState, hideLoadingScreen, initializeAppFailure ... 以降の関数は変更なし ---
+// (AppStateへのアクセスはそのまま利用可能)
+// ...
 
-    // イベントリスナーを設定
+// アプリケーションUIの初期化 (変更なし)
+function initializeAppState() {
+    console.log("[initializeAppState] Initializing app UI state with profile:", AppState.userProfile);
     setupEventListeners();
+    changePhase('phase1'); // 最初の画面表示
+    document.body.style.alignItems = 'flex-start'; // bodyのスタイルを元に戻す
+    console.log("[initializeAppState] UI Initialized, phase1 shown.");
+}
 
-    // 最初の画面を表示
-    changePhase('phase1');
-
-    // ローディング画面を非表示にする
+// ローディング画面を非表示にする共通関数 (変更なし)
+function hideLoadingScreen() {
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
-        loadingScreen.style.display = 'none';
+        if (loadingScreen.style.display !== 'none') {
+            console.log("[hideLoadingScreen] Hiding loading screen now.");
+            loadingScreen.style.display = 'none';
+        } else {
+            console.log("[hideLoadingScreen] Loading screen was already hidden.");
+        }
+    } else {
+        console.error("[hideLoadingScreen] Loading screen element (#loading-screen) not found in the DOM.");
     }
+}
 
-    // bodyのalign-itemsを元に戻す
-    document.body.style.alignItems = 'flex-start';
+// 初期化失敗時の処理 (変更なし - AppStateは使える前提)
+function initializeAppFailure(errorMessage) {
+    console.error("[initializeAppFailure] Displaying failure message:", errorMessage);
+
+    const bodyElement = document.body;
+    // エラーメッセージ要素がなければ作成
+    if (!document.querySelector('.error-message')) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.textAlign = 'center';
+        errorDiv.style.color = 'red';
+        errorDiv.innerHTML = `
+            <h2>アプリケーションエラー</h2>
+            <p>アプリの起動に必要な処理中にエラーが発生しました。</p>
+            <p>詳細: ${escapeHtml(errorMessage)}</p>
+            <p>時間をおいて再度お試しいただくか、開発者にご連絡ください。</p>
+            <p style="font-size: 0.8em; color: #666;">(LIFF SDKの読み込みエラーの場合、LINE Developers Consoleの設定を確認してください)</p>
+        `;
+         // bodyをクリアする前にローディングを非表示にする
+         const loadingScreen = document.getElementById('loading-screen');
+         if (loadingScreen) loadingScreen.style.display = 'none';
+
+        bodyElement.innerHTML = '';
+        bodyElement.appendChild(errorDiv);
+        bodyElement.style.display = 'flex';
+        bodyElement.style.justifyContent = 'center';
+        bodyElement.style.alignItems = 'center';
+        bodyElement.style.minHeight = '100vh';
+    } else {
+         // 既にエラーメッセージが表示されている場合は内容を更新
+         const errorP = document.querySelector('.error-message p:nth-of-type(2)'); // 2番目のpタグを更新
+         if(errorP) errorP.innerHTML = `詳細: ${escapeHtml(errorMessage)}`;
+    }
 }
 
 
+// --- setupEventListeners 以降の関数は変更なし ---
+// ... (previous code remains the same) ...
+
 function setupEventListeners() {
+    console.log("[setupEventListeners] Setting up event listeners.");
+    // ... (rest of the function remains the same) ...
+    // Phase 1 -> Phase 2
     document.getElementById('start-btn')?.addEventListener('click', () => {
-        document.getElementById('display-name').value = window.userProfile.displayName || "ゲスト";
+        document.getElementById('display-name').value = AppState.userProfile.displayName || "ゲスト";
+        const genderRadio = document.querySelector(`input[name="gender"][value="${AppState.gender}"]`);
+        if (genderRadio) genderRadio.checked = true;
         changePhase('phase2');
     });
 
+    // Phase 2 -> Phase 3
     document.getElementById('next-to-upload-btn')?.addEventListener('click', () => {
+        const selectedGender = document.querySelector('input[name="gender"]:checked');
+        if (selectedGender) {
+            AppState.gender = selectedGender.value;
+        }
+        console.log("[setupEventListeners] Gender selected:", AppState.gender);
         changePhase('phase3');
     });
 
-    document.getElementById('request-diagnosis-btn')?.addEventListener('click', handleDiagnosisRequest);
-    
-    document.getElementById('next-to-proposal-btn')?.addEventListener('click', () => {
-        changePhase('phase5');
-    });
-
-    document.getElementById('next-to-generate-btn')?.addEventListener('click', () => {
-        console.log("Selected proposal:", window.selectedProposal);
-        // TODO: Phase6 UI
-        changePhase('phase6');
-    });
-
+    // Phase 3 ファイルアップロード関連
     document.querySelectorAll('.upload-item').forEach(item => {
         const button = item.querySelector('.btn-outline');
         const input = item.querySelector('.file-input');
+        const itemId = item.id;
+
         button?.addEventListener('click', () => input.click());
+
         input?.addEventListener('change', (event) => {
             if (event.target.files && event.target.files[0]) {
                 const file = event.target.files[0];
-                window.uploadedFiles[item.id] = file;
+                AppState.uploadedFiles[itemId] = file;
+                console.log(`[setupEventListeners] File added for ${itemId}:`, file.name);
+
                 button.textContent = '✔️ 撮影済み';
+                button.classList.remove('btn-outline');
                 button.classList.add('btn-success');
                 button.disabled = true;
                 item.querySelector('.upload-icon').style.backgroundColor = '#d1fae5';
+
                 checkAllFilesUploaded();
             }
         });
     });
+
+    // Phase 3 -> Phase 3.5 -> Phase 4 (診断リクエスト)
+    document.getElementById('request-diagnosis-btn')?.addEventListener('click', handleDiagnosisRequest);
+
+    // Phase 4 -> Phase 5
+    document.getElementById('next-to-proposal-btn')?.addEventListener('click', () => {
+        changePhase('phase5');
+        setupProposalCardListeners(); // Phase5が表示された後にリスナーを設定
+    });
+
+    // Phase 5 -> Phase 6
+    document.getElementById('next-to-generate-btn')?.addEventListener('click', () => {
+        console.log("[setupEventListeners] Selected proposal for generation:", AppState.selectedProposal);
+        if (!AppState.selectedProposal.hairstyle || !AppState.selectedProposal.haircolor) {
+            alert("ヘアスタイルとヘアカラーを選択してください。");
+            return;
+        }
+        // TODO: Implement Phase 6 UI and logic
+        changePhase('phase6');
+        // 画像生成リクエストなど
+    });
+}
+
+function setupProposalCardListeners() {
+    // ... (変更なし) ...
+    const hairstyleContainer = document.getElementById('hairstyle-proposal');
+    const haircolorContainer = document.getElementById('haircolor-proposal');
+
+    const handleCardClick = (event, type) => {
+        const card = event.target.closest('.proposal-card');
+        if (!card) return;
+
+        const name = card.dataset.name;
+        AppState.selectedProposal[type] = name;
+
+        const container = type === 'hairstyle' ? hairstyleContainer : haircolorContainer;
+        container.querySelectorAll('.proposal-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+
+        console.log('[setupProposalCardListeners] Selected proposals:', AppState.selectedProposal);
+        checkProposalSelection();
+    };
+
+    // Remove previous listeners if they exist to prevent duplicates
+    if (hairstyleContainer?._clickHandler) {
+        hairstyleContainer.removeEventListener('click', hairstyleContainer._clickHandler);
+    }
+     if (haircolorContainer?._clickHandler) {
+        haircolorContainer.removeEventListener('click', haircolorContainer._clickHandler);
+    }
+
+    // Store handlers on the elements themselves
+    hairstyleContainer._clickHandler = (event) => handleCardClick(event, 'hairstyle');
+    haircolorContainer._clickHandler = (event) => handleCardClick(event, 'haircolor');
+
+    hairstyleContainer?.addEventListener('click', hairstyleContainer._clickHandler);
+    haircolorContainer?.addEventListener('click', haircolorContainer._clickHandler);
+
+    checkProposalSelection(); // Check button state initially
 }
 
 async function handleDiagnosisRequest() {
-    const btn = document.getElementById('request-diagnosis-btn');
+    // ... (変更なし) ...
+     const btn = document.getElementById('request-diagnosis-btn');
     btn.disabled = true;
     btn.textContent = 'アップロード中... (0/5)';
     btn.classList.add('btn-disabled');
 
     try {
-        const uploadPromises = Object.entries(window.uploadedFiles).map(([key, file], index) => 
+        const filesToUpload = Object.entries(AppState.uploadedFiles);
+        const totalFiles = filesToUpload.length;
+
+        const uploadPromises = filesToUpload.map(([key, file], index) =>
             uploadFileToStorage(file, key).then(result => {
-                btn.textContent = `アップロード中... (${index + 1}/5)`;
+                btn.textContent = `アップロード中... (${index + 1}/${totalFiles})`;
                 return result;
             })
         );
 
         const results = await Promise.all(uploadPromises);
-        results.forEach(result => { window.uploadedFileUrls[result.itemName] = result.url; });
-        console.log('All files uploaded:', window.uploadedFileUrls);
+
+        AppState.uploadedFileUrls = results.reduce((acc, result) => {
+            acc[result.itemName] = result.url;
+            return acc;
+        }, {});
+        console.log('[handleDiagnosisRequest] All files uploaded:', AppState.uploadedFileUrls);
 
         changePhase('phase3.5');
-        
-        const gender = document.querySelector('input[name="gender"]:checked').value;
-        const aiResult = await requestAiDiagnosis(window.uploadedFileUrls, window.userProfile, gender);
-        console.log('AI Result:', aiResult);
-        
-        displayDiagnosisResult(aiResult.result);
-        displayProposalResult(aiResult.proposal);
+
+        const aiResponse = await requestAiDiagnosis(
+            AppState.uploadedFileUrls,
+            AppState.userProfile,
+            AppState.gender
+        );
+        console.log('[handleDiagnosisRequest] AI Response:', aiResponse);
+
+        displayDiagnosisResult(aiResponse?.result);
+        displayProposalResult(aiResponse?.proposal);
+
         changePhase('phase4');
 
     } catch (error) {
-        console.error('An error occurred during diagnosis request:', error);
-        alert('エラーが発生しました。もう一度お試しください。');
+        console.error('[handleDiagnosisRequest] An error occurred:', error);
+        alert(`エラーが発生しました: ${error.message || 'もう一度お試しください。'}`);
         btn.disabled = false;
         btn.textContent = 'AI診断をリクエストする';
-        if(checkAllFilesUploaded()) btn.classList.remove('btn-disabled');
+        if(checkAllFilesUploaded()) {
+            btn.classList.remove('btn-disabled');
+        } else {
+             btn.classList.add('btn-disabled');
+        }
+        changePhase('phase3'); // エラー発生時はアップロード画面に戻る
     }
 }
 
 function displayDiagnosisResult(result) {
-    if (!result) return;
-    const mapping = {
+    // ... (変更なし) ...
+     const mapping = {
         face: { container: document.getElementById('face-results'), labels: { nose: '鼻', mouth: '口', eyes: '目', eyebrows: '眉', forehead: 'おでこ' } },
         skeleton: { container: document.getElementById('skeleton-results'), labels: { neckLength: '首の長さ', faceShape: '顔の形', bodyLine: 'ボディライン', shoulderLine: '肩のライン' } },
         personalColor: { container: document.getElementById('personal-color-results'), labels: { baseColor: 'ベースカラー', season: 'シーズン', brightness: '明度', saturation: '彩度', eyeColor: '瞳の色' } }
     };
+
     for (const category in mapping) {
         const { container, labels } = mapping[category];
-        if (!container || !result[category]) continue;
-        container.innerHTML = '';
-        for (const key in result[category]) {
-            if (labels[key]) {
-                container.innerHTML += `<div class="result-item-label">${labels[key]}</div><div class="result-item-value">${result[category][key]}</div>`;
+        if (!container) continue;
+        container.innerHTML = ''; // Clear previous results
+
+        if (!result || !result[category]) {
+            container.innerHTML = '<div class="result-item-label">診断データなし</div><div class="result-item-value">-</div>';
+            continue;
+        }
+
+        let hasData = false;
+        for (const key in labels) {
+            if (Object.hasOwnProperty.call(result[category], key) && labels[key]) {
+                const value = result[category][key];
+                container.innerHTML += `
+                    <div class="result-item-label">${labels[key]}</div>
+                    <div class="result-item-value">${value != null ? escapeHtml(String(value)) : '-'}</div>`;
+                hasData = true;
             }
+        }
+        if (!hasData) {
+             container.innerHTML = '<div class="result-item-label">診断データなし</div><div class="result-item-value">-</div>';
         }
     }
 }
 
+
 function displayProposalResult(proposal) {
-    if (!proposal) return;
+    // ... (変更なし) ...
     const hairstyleContainer = document.getElementById('hairstyle-proposal');
     const haircolorContainer = document.getElementById('haircolor-proposal');
     const commentContainer = document.getElementById('top-stylist-comment-text');
-    
+
+    if (!hairstyleContainer || !haircolorContainer || !commentContainer) return;
+
     hairstyleContainer.innerHTML = '';
     haircolorContainer.innerHTML = '';
-    
-    proposal.hairstyles?.forEach(style => {
-        hairstyleContainer.innerHTML += `<div class="proposal-card" data-type="hairstyle" data-name="${style.name}"><strong>${style.name}</strong><p>${style.description}</p></div>`;
-    });
-    proposal.haircolors?.forEach(color => {
-        haircolorContainer.innerHTML += `<div class="proposal-card" data-type="haircolor" data-name="${color.name}"><strong>${color.name}</strong><p>${color.description}</p></div>`;
-    });
 
-    commentContainer.textContent = proposal.topStylistComment || '';
+    if (!proposal) {
+        hairstyleContainer.innerHTML = '<p>提案データがありません。</p>';
+        haircolorContainer.innerHTML = '<p>提案データがありません。</p>';
+        commentContainer.textContent = 'コメントはありません。';
+        return;
+    }
 
-    document.querySelectorAll('.proposal-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const type = card.dataset.type;
-            const name = card.dataset.name;
-            window.selectedProposal[type] = name;
-            document.querySelectorAll(`.proposal-card[data-type="${type}"]`).forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            console.log('Selected:', window.selectedProposal);
+    if (proposal.hairstyles?.length > 0) {
+        proposal.hairstyles.forEach(style => {
+            if (style?.name && style?.description) {
+                 hairstyleContainer.innerHTML += `
+                    <div class="proposal-card" data-type="hairstyle" data-name="${escapeHtml(style.name)}">
+                        <strong>${escapeHtml(style.name)}</strong>
+                        <p>${escapeHtml(style.description)}</p>
+                    </div>`;
+            }
         });
-    });
+    } else {
+        hairstyleContainer.innerHTML = '<p>提案されたヘアスタイルはありません。</p>';
+    }
+
+    if (proposal.haircolors?.length > 0) {
+        proposal.haircolors.forEach(color => {
+            if (color?.name && color?.description) {
+                haircolorContainer.innerHTML += `
+                    <div class="proposal-card" data-type="haircolor" data-name="${escapeHtml(color.name)}">
+                        <strong>${escapeHtml(color.name)}</strong>
+                        <p>${escapeHtml(color.description)}</p>
+                    </div>`;
+            }
+        });
+    } else {
+        haircolorContainer.innerHTML = '<p>提案されたヘアカラーはありません。</p>';
+    }
+
+    commentContainer.textContent = proposal.topStylistComment || 'コメントはありません。';
 }
 
+
 function checkAllFilesUploaded() {
-    const isReady = Object.keys(window.uploadedFiles).length === 5;
+    // ... (変更なし) ...
+    const requiredFilesCount = 5;
+    const uploadedCount = Object.keys(AppState.uploadedFiles).length;
+    const isReady = uploadedCount === requiredFilesCount;
     const btn = document.getElementById('request-diagnosis-btn');
-    if (isReady) {
-        btn.disabled = false;
-        btn.classList.remove('btn-disabled');
+
+    if (btn) {
+        btn.disabled = !isReady;
+        btn.classList.toggle('btn-disabled', !isReady);
     }
     return isReady;
 }
 
-async function uploadFileToStorage(file, itemName) {
-    const userId = window.userProfile.userId || `guest_${Date.now()}`;
-    const { storage, ref, uploadBytes, getDownloadURL } = window.firebase;
-    const filePath = `uploads/${userId}/${itemName}_${file.name}`;
-    const storageRef = ref(storage, filePath);
-    const snapshot = await uploadBytes(storageRef, file);
-    return { itemName, url: await getDownloadURL(snapshot.ref) };
+function checkProposalSelection() {
+    // ... (変更なし) ...
+     const btn = document.getElementById('next-to-generate-btn');
+    const isReady = !!AppState.selectedProposal.hairstyle && !!AppState.selectedProposal.haircolor;
+
+    if (btn) {
+        btn.disabled = !isReady;
+        btn.classList.toggle('btn-disabled', !isReady);
+    }
 }
 
-async function requestAiDiagnosis(fileUrls, profile, gender) {
-    const functionUrl = 'https://us-central1-yhd-dx.cloudfunctions.net/requestDiagnosis';
-    const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrls, userProfile: profile, gender }),
-    });
-    if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
-    return await response.json();
+
+async function uploadFileToStorage(file, itemName) {
+    // ... (変更なし) ...
+    if (!AppState.firebase || !AppState.firebase.storage) {
+        throw new Error("Firebase Storage is not initialized.");
+    }
+    // Use compat syntax for storage reference
+    const storageRef = AppState.firebase.storage.ref();
+    const userId = AppState.userProfile.userId || `guest_${Date.now()}`;
+    const filePath = `uploads/${userId}/${itemName}_${Date.now()}_${file.name}`;
+    const fileRef = storageRef.child(filePath); // Use child() for subpath
+
+    try {
+        const snapshot = await fileRef.put(file); // Use put() to upload
+        const downloadURL = await snapshot.ref.getDownloadURL(); // Use getDownloadURL()
+        return { itemName, url: downloadURL };
+    } catch (error) {
+        console.error(`Error uploading ${itemName}:`, error);
+        throw new Error(`ファイル (${escapeHtml(itemName)}) のアップロードに失敗しました。`);
+    }
 }
+
+
+async function requestAiDiagnosis(fileUrls, profile, gender) {
+    // ... (変更なし) ...
+     const functionUrl = '/requestDiagnosis'; // Use relative path for Functions rewrite
+    try {
+        const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileUrls, userProfile: profile, gender }),
+        });
+        if (!response.ok) {
+            const errorBody = await response.text(); // Get more error details
+            throw new Error(`AI診断サーバーエラー (ステータス: ${response.status}): ${errorBody}`);
+        }
+        const data = await response.json();
+         // --- ダミー提案データ (バックエンド未実装時のフォールバック) ---
+        if (!data.proposal) {
+            console.warn("Backend did not return 'proposal', using dummy data.");
+            data.proposal = {
+                hairstyles: [{ name: "ダミー スタイル1", description: "ふんわりボブスタイル" }, { name: "ダミー スタイル2", description: "クールなショートレイヤー" }],
+                haircolors: [{ name: "ダミー カラー1", description: "明るめのアッシュブラウン" }, { name: "ダミー カラー2", description: "深みのあるカシスレッド" }],
+                topStylistComment: "これはAIからのダミー提案コメントです。あなたの特徴に合わせてスタイルを考えてみました。"
+            };
+        }
+        // --- ここまで ---
+        return data;
+    } catch (error) {
+         console.error('[requestAiDiagnosis] Request failed:', error);
+         // Rethrow a more specific error or handle it as needed
+         throw new Error(error.message || 'AI診断リクエスト中に不明なエラーが発生しました。');
+    }
+}
+
+// 他の関数 (displayDiagnosisResult, displayProposalResult など) は変更なし
+// ...
+
+function escapeHtml(unsafe) {
+    // ... (変更なし) ...
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+// ui.js で定義されている想定
+// function changePhase(phaseId) { ... }
 
