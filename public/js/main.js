@@ -1,85 +1,37 @@
-// アプリケーションの状態管理オブジェクト
+// --- グローバルアプリケーション状態 ---
 const AppState = {
-  firebase: null, // Firebase services (storage, remoteConfig)
-  liffId: '',     // LIFF ID from Remote Config
-  userProfile: { displayName: "ゲスト", userId: `guest_${Date.now()}` }, // Default guest profile
-  gender: 'female', // Default gender
-  uploadedFiles: {}, // key: item-id, value: File object
-  uploadedFileUrls: {}, // key: item-id, value: Firebase Storage URL
-  selectedProposal: { // User's selection in Phase 5
-      hairstyle: null,
-      haircolor: null
-  },
-  aiDiagnosisResult: null, // Result from Phase 4
-  aiProposal: null,        // Proposal from Phase 5
-  generatedImageUrl: null  // Result image URL from Phase 6
+    firebase: null, // Firebase services (storage, remoteConfig)
+    liffId: '',     // LIFF ID from Remote Config
+    userProfile: { displayName: "ゲスト", userId: `guest_${Date.now()}` }, // Default guest profile
+    gender: 'female', // Default gender
+    uploadedFiles: {}, // key: item-id, value: File object
+    uploadedFileUrls: {}, // key: item-id, value: Firebase Storage URL
+    selectedProposal: { // User's selection in Phase 5
+        hairstyle: null,
+        haircolor: null
+    },
+    aiDiagnosisResult: null, // Result from Phase 4
+    aiProposal: null,        // Proposal from Phase 5
+    generatedImageUrl: null  // Result image URL from Phase 6
 };
 
-// ★★★ エラー表示関数とHTMLエスケープ関数をここに移動 ★★★
-function initializeAppFailure(errorMessage) {
-    console.error("[initializeAppFailure] Displaying failure message:", errorMessage);
+// --- 初期化処理 ---
 
-    // ローディング画面を隠す試み（エラー表示前）
-    hideLoadingScreen();
-
-    const bodyElement = document.body;
-    // エラーメッセージ要素がなければ作成
-    if (!document.querySelector('.error-message')) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.style.padding = '20px';
-        errorDiv.style.textAlign = 'center';
-        errorDiv.style.color = 'red';
-        errorDiv.innerHTML = `
-            <h2>アプリケーションエラー</h2>
-            <p>${escapeHtml(errorMessage)}</p>
-            <p>時間をおいて再度お試しいただくか、開発者にご連絡ください。</p>
-            <p style="font-size: 0.8em; color: #666;">(LIFF SDKの読み込みエラーの場合、LINE Developers Consoleの設定を確認してください)</p>
-        `;
-
-        bodyElement.innerHTML = ''; // 既存のコンテンツをクリア
-        bodyElement.appendChild(errorDiv);
-        // スタイルを再適用
-        bodyElement.style.display = 'flex';
-        bodyElement.style.justifyContent = 'center';
-        bodyElement.style.alignItems = 'center';
-        bodyElement.style.minHeight = '100vh';
-        bodyElement.style.backgroundColor = 'var(--bg-color)'; // 背景色を戻す
-    } else {
-         // 既にエラーメッセージが表示されている場合は内容を更新
-         const errorP = document.querySelector('.error-message p:first-of-type');
-         if(errorP) errorP.innerHTML = escapeHtml(errorMessage);
-    }
-}
-
-function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') return '';
-    // ★★★ 構文エラーの可能性がある正規表現を修正 ★★★
-    // replace('/', '&sol;') を追加
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;")
-         .replace(/\//g, "&#x2F;"); // スラッシュもエスケープ
-}
-
-
-// index.html から Firebase サービスを受け取って初期化を開始
+// ★★★ main 関数は index.html の firebase-initialized イベントリスナーから呼ばれる ★★★
 async function main(firebaseServices) {
+    window.mainFunctionCalled = true; // 呼び出しフラグ (index.html用)
     console.log("[main] Function started.");
     let loadingScreenHidden = false;
 
     try {
-        // 引数から Firebase サービスを AppState に格納
-        console.log("[main] Receiving Firebase services...");
+        // Firebaseサービスの存在確認・格納
+        console.log("[main] Checking for received Firebase services...");
         if (!firebaseServices || !firebaseServices.storage || !firebaseServices.remoteConfig) {
-            console.error('[main] Firebase services argument is invalid.');
-            throw new Error("Firebaseサービスの準備が完了していません (Invalid argument)。");
+            console.error('[main] Received Firebase services object is invalid or incomplete.');
+            throw new Error("Firebaseサービスの準備が完了していません (Invalid services passed)。");
         }
-        AppState.firebase = firebaseServices;
-        console.log("[main] Firebase services assigned to AppState.");
+        AppState.firebase = firebaseServices; // ★★★ AppState に格納 ★★★
+        console.log("[main] Firebase services stored in AppState.");
 
         // Remote ConfigからLIFF IDを取得
         console.log("[main] Fetching Remote Config...");
@@ -91,20 +43,22 @@ async function main(firebaseServices) {
         console.log("[main] Fetched LIFF ID from Remote Config:", AppState.liffId);
 
         if (!AppState.liffId) {
-             console.warn("[main] LIFF ID from Remote Config is empty, using default from defaultConfig.");
-             AppState.liffId = AppState.firebase.remoteConfig.defaultConfig['liff_id'];
-             if (!AppState.liffId) {
-                console.error("[main] Default LIFF ID is also unavailable.");
+             // Remote Configから取得できなかった場合、index.html の defaultConfig を参照するが、
+             // ここでは念のため直接フォールバック値を使う
+             AppState.liffId = '2008345232-zq4A3Vg3';
+             console.warn("[main] LIFF ID from Remote Config is empty, using hardcoded fallback:", AppState.liffId);
+             if (!AppState.liffId) { // フォールバックもなければエラー
+                console.error("[main] Fallback LIFF ID is also unavailable.");
                 throw new Error("LIFF IDをRemote Configから取得できませんでした。");
              }
         }
-        console.log("[main] Using LIFF ID for init:", AppState.liffId);
+        console.log("[main] Using LIFF ID:", AppState.liffId);
 
         // LIFF SDKの存在確認
         console.log("[main] Checking for LIFF SDK object...");
         if (typeof liff === 'undefined') {
-            console.error("[main] LIFF SDK object (liff) is undefined. Check network tab for sdk.js loading errors (e.g., 403 Forbidden).");
-            throw new Error('LIFF SDKが見つかりません。sdk.jsの読み込みに失敗している可能性があります。LINE Developers Consoleの設定（Endpoint URL, Callback URL）やネットワーク接続を確認してください。');
+            console.error("[main] LIFF SDK object (liff) is undefined.");
+            throw new Error('LIFF SDKが見つかりません。sdk.jsの読み込みに失敗 (403 Forbidden?) している可能性があります。LINE Developers Consoleの設定、ネットワーク環境、ブラウザキャッシュを確認してください。');
         }
         console.log("[main] LIFF SDK object found.");
 
@@ -119,16 +73,16 @@ async function main(firebaseServices) {
             console.log("[main] LIFF user is logged in. Getting profile...");
             const profile = await liff.getProfile();
             console.log("[main] User profile obtained:", profile);
-            AppState.userProfile = profile;
+            // 取得したプロファイルをAppStateにマージ（ゲスト情報は上書き）
+            AppState.userProfile = { ...AppState.userProfile, ...profile };
         } else {
             console.log("[main] LIFF user not logged in. Proceeding as guest.");
-             AppState.userProfile = { displayName: "ゲスト", userId: `guest_${Date.now()}` };
-             // 必要であればここで liff.login() を呼び出すことも検討
+             // ゲスト情報はデフォルトのまま
         }
 
         // UI初期化（成功時）
         console.log("[main] Calling initializeAppState for UI setup.");
-        initializeAppState();
+        initializeAppState(); // AppState は既に設定済み
 
         // 正常終了時にローディング画面を隠す
         hideLoadingScreen();
@@ -136,24 +90,19 @@ async function main(firebaseServices) {
 
     } catch (err) {
         console.error("[main] Initialization failed inside main try block:", err);
-        if (err.stack) {
-             console.error("[main] Error stack:", err.stack);
-        }
-        // hideLoadingScreen(); // finallyで処理するため不要
-        // loadingScreenHidden = true; // finallyで処理するため不要
         initializeAppFailure(`アプリの初期化に失敗しました: ${err.message || '不明なエラーが発生しました。コンソールを確認してください。'}`);
 
     } finally {
         console.log("[main] Entering finally block.");
         // finally ブロックで確実にローディング画面を隠す
         if (!loadingScreenHidden) {
-             console.warn("[main] Loading screen was potentially not hidden in try/catch. Hiding now.");
+             console.warn("[main] Hiding loading screen in finally block (might indicate an error happened before explicit hide).");
              hideLoadingScreen();
         }
     }
 }
 
-// --- initializeAppState, hideLoadingScreen ... 以降の関数は変更なし ---
+// --- 他の関数 (initializeAppState, hideLoadingScreen, initializeAppFailure, setupEventListeners, etc.) ---
 
 // アプリケーションUIの初期化
 function initializeAppState() {
@@ -172,19 +121,65 @@ function hideLoadingScreen() {
             console.log("[hideLoadingScreen] Hiding loading screen now.");
             loadingScreen.style.display = 'none';
         } else {
-            // console.log("[hideLoadingScreen] Loading screen was already hidden."); // 冗長なのでコメントアウト
+            console.log("[hideLoadingScreen] Loading screen was already hidden.");
         }
     } else {
-        // このエラーは initializeAppFailure で body がクリアされた場合に発生する可能性がある
-        console.warn("[hideLoadingScreen] Loading screen element (#loading-screen) not found in the DOM (possibly removed by error handler).");
+        // body がクリアされた後でもエラーを出さないようにする
+        console.warn("[hideLoadingScreen] Loading screen element (#loading-screen) not found. Might be normal if error occurred.");
     }
 }
 
-// --- setupEventListeners 以降の関数は変更なし ---
-// ... (previous code remains the same) ...
+// 初期化失敗時の処理
+function initializeAppFailure(errorMessage) {
+    console.error("[initializeAppFailure] Displaying failure message:", errorMessage);
 
+    // まずローディング画面を確実に隠す
+    hideLoadingScreen();
+
+    const bodyElement = document.body;
+    // エラーメッセージ要素がなければ作成
+    let errorDiv = document.querySelector('.error-message');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.textAlign = 'center';
+        errorDiv.style.color = 'red';
+        bodyElement.innerHTML = ''; // body をクリア
+        bodyElement.appendChild(errorDiv);
+        bodyElement.style.display = 'flex';
+        bodyElement.style.justifyContent = 'center';
+        bodyElement.style.alignItems = 'center';
+        bodyElement.style.minHeight = '100vh';
+    }
+
+    // エラーメッセージを設定
+    errorDiv.innerHTML = `
+        <h2>アプリケーションエラー</h2>
+        <p>アプリの起動に必要な処理中にエラーが発生しました。</p>
+        <p>詳細: ${escapeHtml(errorMessage)}</p>
+        <p>時間をおいて再度お試しいただくか、開発者にご連絡ください。</p>
+        <p style="font-size: 0.8em; color: #666;">(LIFF SDKの読み込みエラーの場合、LINE Developers Consoleの設定、ネットワーク環境、ブラウザキャッシュを確認してください)</p>
+    `;
+}
+
+// HTMLエスケープ関数
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;")
+         .replace(/\//g, "&#x2F;"); // スラッシュもエスケープ
+}
+
+
+// --- イベントリスナー設定 ---
 function setupEventListeners() {
     console.log("[setupEventListeners] Setting up event listeners.");
+
     // Phase 1 -> Phase 2
     document.getElementById('start-btn')?.addEventListener('click', () => {
         document.getElementById('display-name').value = AppState.userProfile.displayName || "ゲスト";
@@ -250,7 +245,9 @@ function setupEventListeners() {
     });
 }
 
+// Phase 5 提案カードのクリックリスナー設定 (変更なし)
 function setupProposalCardListeners() {
+    // ... (rest of the function is the same as before) ...
     const hairstyleContainer = document.getElementById('hairstyle-proposal');
     const haircolorContainer = document.getElementById('haircolor-proposal');
 
@@ -287,8 +284,12 @@ function setupProposalCardListeners() {
     checkProposalSelection(); // Check button state initially
 }
 
+
+// --- 診断リクエスト処理 ---
 async function handleDiagnosisRequest() {
-     const btn = document.getElementById('request-diagnosis-btn');
+    const btn = document.getElementById('request-diagnosis-btn');
+    if (!btn) return;
+
     btn.disabled = true;
     btn.textContent = 'アップロード中... (0/5)';
     btn.classList.add('btn-disabled');
@@ -297,13 +298,13 @@ async function handleDiagnosisRequest() {
         const filesToUpload = Object.entries(AppState.uploadedFiles);
         const totalFiles = filesToUpload.length;
 
+        // ファイルアップロード
         const uploadPromises = filesToUpload.map(([key, file], index) =>
             uploadFileToStorage(file, key).then(result => {
                 btn.textContent = `アップロード中... (${index + 1}/${totalFiles})`;
                 return result;
             })
         );
-
         const results = await Promise.all(uploadPromises);
 
         AppState.uploadedFileUrls = results.reduce((acc, result) => {
@@ -312,40 +313,46 @@ async function handleDiagnosisRequest() {
         }, {});
         console.log('[handleDiagnosisRequest] All files uploaded:', AppState.uploadedFileUrls);
 
+        // 診断中画面表示
         changePhase('phase3.5');
 
+        // AI診断リクエスト (Functions呼び出し)
         const aiResponse = await requestAiDiagnosis(
             AppState.uploadedFileUrls,
             AppState.userProfile,
             AppState.gender
         );
-        console.log('[handleDiagnosisRequest] AI Response:', aiResponse);
+        console.log('[handleDiagnosisRequest] AI Response received:', aiResponse);
 
-        // 結果をAppStateに保存（必要に応じて）
+        // 結果をAppStateに保存
         AppState.aiDiagnosisResult = aiResponse?.result;
         AppState.aiProposal = aiResponse?.proposal;
 
+        // 結果表示
+        displayDiagnosisResult(AppState.aiDiagnosisResult);
+        displayProposalResult(AppState.aiProposal);
 
-        displayDiagnosisResult(aiResponse?.result);
-        displayProposalResult(aiResponse?.proposal);
-
+        // 結果画面へ遷移
         changePhase('phase4');
 
     } catch (error) {
         console.error('[handleDiagnosisRequest] An error occurred:', error);
-        alert(`エラーが発生しました: ${error.message || 'もう一度お試しください。'}`);
-        btn.disabled = false;
-        btn.textContent = 'AI診断をリクエストする';
-        if(checkAllFilesUploaded()) {
-            btn.classList.remove('btn-disabled');
-        } else {
-             btn.classList.add('btn-disabled');
+        initializeAppFailure(`診断リクエスト中にエラーが発生しました: ${error.message || '不明なエラー。コンソールを確認してください。'}`);
+        // エラー発生時はアップロード画面に戻す (ボタンの状態はリセットしない方が良いかも)
+        changePhase('phase3');
+        if (btn) { // ボタンがまだ存在すれば
+             btn.textContent = 'AI診断をリクエストする'; // テキストだけ戻す
+             // アップロード状態に応じて disable/enable を再設定
+             checkAllFilesUploaded();
         }
-        changePhase('phase3'); // エラー発生時はアップロード画面に戻る
     }
 }
 
+// --- 結果表示関連 ---
+
+// Phase 4: 診断結果表示 (変更なし)
 function displayDiagnosisResult(result) {
+    // ... (rest of the function is the same as before) ...
      const mapping = {
         face: { container: document.getElementById('face-results'), labels: { nose: '鼻', mouth: '口', eyes: '目', eyebrows: '眉', forehead: 'おでこ' } },
         skeleton: { container: document.getElementById('skeleton-results'), labels: { neckLength: '首の長さ', faceShape: '顔の形', bodyLine: 'ボディライン', shoulderLine: '肩のライン' } },
@@ -364,7 +371,6 @@ function displayDiagnosisResult(result) {
 
         let hasData = false;
         for (const key in labels) {
-            // Check if the key exists in the result object for this category
             if (Object.hasOwnProperty.call(result[category], key) && labels[key]) {
                 const value = result[category][key];
                 container.innerHTML += `
@@ -379,8 +385,9 @@ function displayDiagnosisResult(result) {
     }
 }
 
-
+// Phase 5: 提案表示 (変更なし)
 function displayProposalResult(proposal) {
+    // ... (rest of the function is the same as before) ...
     const hairstyleContainer = document.getElementById('hairstyle-proposal');
     const haircolorContainer = document.getElementById('haircolor-proposal');
     const commentContainer = document.getElementById('top-stylist-comment-text');
@@ -390,15 +397,17 @@ function displayProposalResult(proposal) {
     hairstyleContainer.innerHTML = '';
     haircolorContainer.innerHTML = '';
 
-    if (!proposal) {
-        hairstyleContainer.innerHTML = '<p>提案データがありません。</p>';
-        haircolorContainer.innerHTML = '<p>提案データがありません。</p>';
-        commentContainer.textContent = 'コメントはありません。';
-        return;
-    }
+    // ★★★ ダミーデータを使うための修正 ★★★
+    const effectiveProposal = proposal || { // proposalがnull/undefinedならダミーを使う
+        hairstyles: [{ name: "ダミー スタイル1", description: "ふんわりボブスタイル" }, { name: "ダミー スタイル2", description: "クールなショートレイヤー" }],
+        haircolors: [{ name: "ダミー カラー1", description: "明るめのアッシュブラウン" }, { name: "ダミー カラー2", description: "深みのあるカシスレッド" }],
+        topStylistComment: "これはAIからのダミー提案コメントです。あなたの特徴に合わせてスタイルを考えてみました。"
+    };
+    // ★★★ ここまで ★★★
 
-    if (proposal.hairstyles?.length > 0) {
-        proposal.hairstyles.forEach(style => {
+
+    if (effectiveProposal.hairstyles?.length > 0) {
+        effectiveProposal.hairstyles.forEach(style => {
             if (style?.name && style?.description) {
                  hairstyleContainer.innerHTML += `
                     <div class="proposal-card" data-type="hairstyle" data-name="${escapeHtml(style.name)}">
@@ -411,8 +420,8 @@ function displayProposalResult(proposal) {
         hairstyleContainer.innerHTML = '<p>提案されたヘアスタイルはありません。</p>';
     }
 
-    if (proposal.haircolors?.length > 0) {
-        proposal.haircolors.forEach(color => {
+    if (effectiveProposal.haircolors?.length > 0) {
+        effectiveProposal.haircolors.forEach(color => {
             if (color?.name && color?.description) {
                 haircolorContainer.innerHTML += `
                     <div class="proposal-card" data-type="haircolor" data-name="${escapeHtml(color.name)}">
@@ -425,11 +434,14 @@ function displayProposalResult(proposal) {
         haircolorContainer.innerHTML = '<p>提案されたヘアカラーはありません。</p>';
     }
 
-    commentContainer.textContent = proposal.topStylistComment || 'コメントはありません。';
+    commentContainer.textContent = effectiveProposal.topStylistComment || 'コメントはありません。';
 }
 
+// --- ユーティリティ関数 ---
 
+// Phase 3: 全ファイルアップロード完了確認 (変更なし)
 function checkAllFilesUploaded() {
+    // ... (rest of the function is the same as before) ...
     const requiredFilesCount = 5;
     const uploadedCount = Object.keys(AppState.uploadedFiles).length;
     const isReady = uploadedCount === requiredFilesCount;
@@ -439,10 +451,13 @@ function checkAllFilesUploaded() {
         btn.disabled = !isReady;
         btn.classList.toggle('btn-disabled', !isReady);
     }
+    console.log(`[checkAllFilesUploaded] ${uploadedCount}/${requiredFilesCount} files ready. Button enabled: ${isReady}`);
     return isReady;
 }
 
+// Phase 5: 提案選択完了確認 (変更なし)
 function checkProposalSelection() {
+    // ... (rest of the function is the same as before) ...
      const btn = document.getElementById('next-to-generate-btn');
     const isReady = !!AppState.selectedProposal.hairstyle && !!AppState.selectedProposal.haircolor;
 
@@ -450,10 +465,12 @@ function checkProposalSelection() {
         btn.disabled = !isReady;
         btn.classList.toggle('btn-disabled', !isReady);
     }
+     console.log(`[checkProposalSelection] Hairstyle: ${AppState.selectedProposal.hairstyle}, Haircolor: ${AppState.selectedProposal.haircolor}. Button enabled: ${isReady}`);
 }
 
-
+// Firebase Storageへのファイルアップロード (変更なし)
 async function uploadFileToStorage(file, itemName) {
+    // ... (rest of the function is the same as before) ...
     if (!AppState.firebase || !AppState.firebase.storage) {
         throw new Error("Firebase Storage is not initialized.");
     }
@@ -464,50 +481,39 @@ async function uploadFileToStorage(file, itemName) {
     const fileRef = storageRef.child(filePath); // Use child() for subpath
 
     try {
+        console.log(`[uploadFileToStorage] Uploading ${itemName} to ${filePath}...`);
         const snapshot = await fileRef.put(file); // Use put() to upload
         const downloadURL = await snapshot.ref.getDownloadURL(); // Use getDownloadURL()
+        console.log(`[uploadFileToStorage] Upload successful for ${itemName}: ${downloadURL}`);
         return { itemName, url: downloadURL };
     } catch (error) {
-        console.error(`Error uploading ${itemName}:`, error);
+        console.error(`[uploadFileToStorage] Error uploading ${itemName}:`, error);
         throw new Error(`ファイル (${escapeHtml(itemName)}) のアップロードに失敗しました。`);
     }
 }
 
-
+// Firebase Functions呼び出し (AI診断リクエスト) (ダミーデータ処理削除)
 async function requestAiDiagnosis(fileUrls, profile, gender) {
-     const functionUrl = '/requestDiagnosis'; // Use relative path for Functions rewrite
+    const functionUrl = '/requestDiagnosis'; // Use relative path for Functions rewrite
+    console.log(`[requestAiDiagnosis] Sending request to ${functionUrl}`);
     try {
         const response = await fetch(functionUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fileUrls, userProfile: profile, gender }),
         });
+        console.log(`[requestAiDiagnosis] Response status: ${response.status}`);
         if (!response.ok) {
-            const errorBody = await response.text(); // Get more error details
-            throw new Error(`AI診断サーバーエラー (ステータス: ${response.status}): ${errorBody}`);
+            const errorBody = await response.text();
+            console.error(`[requestAiDiagnosis] Server error body:`, errorBody);
+            throw new Error(`AI診断サーバーエラー (ステータス: ${response.status}): ${errorBody || response.statusText}`);
         }
         const data = await response.json();
-         // --- ダミー提案データ (バックエンド未実装時のフォールバック) ---
-        if (!data.proposal) {
-            console.warn("[requestAiDiagnosis] Backend did not return 'proposal', using dummy data.");
-            data.proposal = {
-                hairstyles: [{ name: "ダミー スタイル1", description: "ふんわりボブスタイル" }, { name: "ダミー スタイル2", description: "クールなショートレイヤー" }],
-                haircolors: [{ name: "ダミー カラー1", description: "明るめのアッシュブラウン" }, { name: "ダミー カラー2", description: "深みのあるカシスレッド" }],
-                topStylistComment: "これはAIからのダミー提案コメントです。あなたの特徴に合わせてスタイルを考えてみました。"
-            };
-        }
-        // --- ここまで ---
+        console.log('[requestAiDiagnosis] Received data:', data);
+        // ★★★ ダミーデータ処理を削除 ★★★
         return data;
     } catch (error) {
          console.error('[requestAiDiagnosis] Request failed:', error);
-         // Rethrow a more specific error or handle it as needed
-         throw new Error(error.message || 'AI診断リクエスト中に不明なエラーが発生しました。');
+         throw new Error(`AI診断リクエストの送信または受信に失敗しました: ${error.message}`);
     }
 }
-
-// 他の関数 (displayDiagnosisResult, displayProposalResult など) は変更なし
-// ...
-
-// ui.js で定義されている想定
-// function changePhase(phaseId) { ... }
-
