@@ -4,152 +4,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>YHD AIパーショナル診断</title>
+    <title>YHD AIパーショナル診断 (Simple Test)</title>
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- SDKスクリプト -->
-    <script src="https://static.line-scdn.net/liff/edge/2.23.0/sdk.js"></script>
+    <!-- ★★★ Firebase SDKとinit.jsをコメントアウト ★★★ -->
+    <!--
     <script src="/__/firebase/12.4.0/firebase-app-compat.js"></script>
     <script src="/__/firebase/12.4.0/firebase-storage-compat.js"></script>
     <script src="/__/firebase/12.4.0/firebase-remote-config-compat.js"></script>
-    <!-- Firebase Init -->
     <script src="/__/firebase/init.js"></script>
+    -->
 
 </head>
 <body>
     <!-- ローディング画面 -->
     <div id="loading-screen" class="loading-container">
         <div class="spinner"></div>
-        <p>アプリを準備しています...</p>
+        <p>LIFF SDKを読み込み中...</p>
     </div>
 
-    <!-- 各フェーズのコンテナ (変更なし) -->
-    <div id="phase1" class="phase-container">
-        <div class="card">
-            <img src="images/YHDlogo2.gif" alt="YHD AI Diagnosis Logo" class="logo">
-            <h1 class="main-title">YHD × AI 『似合わせ』診断</h1>
-            <p class="description">
-                お客様の『似合う』を実現するために<br>
-                AIが分析し、最適なアドバイスを伝えます！
-            </p>
-            <button id="start-btn" class="btn-primary">診断を始める</button>
-        </div>
-    </div>
-    <div id="phase2" class="phase-container">
-        <div class="card">
-            <h2 class="form-title">プロフィール入力</h2>
-            <div class="form-group">
-                <label for="display-name">お名前</label>
-                <input type="text" id="display-name" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-                <label>性別</label>
-                <div class="gender-selection">
-                    <input type="radio" id="female" name="gender" value="female" checked>
-                    <label for="female">女性</label>
-                    <input type="radio" id="male" name="gender" value="male">
-                    <label for="male">男性</label>
-                    <input type="radio" id="other" name="gender" value="other">
-                    <label for="other">その他</label>
-                </div>
-            </div>
-            <button id="next-to-upload-btn" class="btn-dark">撮影に進む</button>
-        </div>
-    </div>
-    <div id="phase3" class="phase-container">
-         <div class="card">
-            <h2 class="form-title">写真・動画撮影</h2>
-            <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
-            <div class="upload-list">
-                <div id="item-front-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと写るように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-side-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さがわかるように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-back-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型がわかるように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-front-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：正面 (3秒)</strong><span>ゆっくりと左右に顔を動かす</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-back-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動きがわかるように</span></div><button class="btn-outline">撮影する</button></div>
-            </div>
-            <button id="request-diagnosis-btn" class="btn-dark btn-disabled" disabled>AI診断をリクエストする</button>
-        </div>
-    </div>
-    <div id="phase3.5" class="phase-container"><div class="card"><div class="spinner"></div><h2 class="form-title" style="margin-top: 25px; margin-bottom: 10px;">AIが診断中です</h2><p class="description">診断リクエストを送信中...</p></div></div>
-    <div id="phase4" class="phase-container"><div class="card"><h2 class="form-title">AI診断結果</h2><div class="result-section"><h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3><div id="face-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3><div id="skeleton-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー診断</h3><div id="personal-color-results" class="result-grid"></div></div><button id="next-to-proposal-btn" class="btn-dark">AIからの提案を見る</button></div></div>
-    <div id="phase5" class="phase-container"><div class="card"><h2 class="form-title">AIパーソナル提案</h2><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル提案</h3><div id="hairstyle-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー提案</h3><div id="haircolor-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3><div class="top-stylist-comment"><p id="top-stylist-comment-text"></p></div></div><button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成する</button></div></div>
-    <div id="phase6" class="phase-container"></div>
+    <!-- 簡単な結果表示用 -->
+    <div id="result-message" style="display: none; padding: 20px; text-align: center;"></div>
 
-    <!-- UIロジックとメインのJavaScript -->
-    <script src="js/ui.js"></script>
-    <script src="js/main.js"></script> <!-- AppState, main() などを含む -->
+    <!-- ★★★ LIFF SDK を Body 末尾に + onerror追加 ★★★ -->
+    <script
+        src="https://static.line-scdn.net/liff/edge/2.23.0/sdk.js"
+        charset="utf-8"
+        onerror="handleLiffSdkLoadError()">
+    </script>
 
-    <!-- 初期化処理 -->
+    <!-- ★★★ 最小限の初期化処理 (エラーハンドリング強化) ★★★ -->
     <script>
-      // ★★★ エラー表示関数 initializeAppFailure と escapeHtml は main.js に移動 ★★★
+        let liffSdkLoadFailed = false; // SDK読み込み失敗フラグ
 
-      // Firebase 初期化完了イベントを待ってから main を呼び出す
-      document.addEventListener('DOMContentLoaded', () => {
-          console.log("DOMContentLoaded event fired.");
-          let firebaseInitialized = false;
-          let mainCalled = false; // main関数が呼ばれたかどうかのフラグ
+        // ★★★ LIFF SDK読み込みエラーハンドラ ★★★
+        function handleLiffSdkLoadError() {
+            console.error("!!! LIFF SDK script failed to load (onerror event triggered). Check Network tab for 403 Forbidden error on sdk.js. !!!");
+            liffSdkLoadFailed = true;
+            // エラーメッセージを表示
+            const loadingScreen = document.getElementById('loading-screen');
+            const resultMessage = document.getElementById('result-message');
+            if (resultMessage) {
+                resultMessage.textContent = `LIFF SDK の読み込みに失敗しました (403 Forbidden?)。ネットワーク設定やLINE Developers Consoleの設定を確認してください。`;
+                resultMessage.style.color = "red";
+                resultMessage.style.display = "block";
+            }
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+        }
 
-          const tryInitializeApp = () => {
-              // 既に呼び出し済み、または main.js が未ロードなら何もしない
-              if (mainCalled || typeof main !== 'function') return;
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOMContentLoaded: Starting simple LIFF init test...");
+            const loadingScreen = document.getElementById('loading-screen');
+            const resultMessage = document.getElementById('result-message');
+            const liffId = "2008345232-zq4A3Vg3"; // LIFF IDを直接指定
 
-              console.log("Attempting to initialize application...");
-              try {
-                  if (typeof firebase === 'undefined') {
-                      if (!firebaseInitialized) {
-                          console.log("Firebase object not ready yet, waiting for firebase-initialized...");
-                          return; // まだ firebase-initialized が来ていないので待機
-                      }
-                      // firebase-initialized 後も未定義ならエラー
-                      throw new Error("Firebase object is still undefined after firebase-initialized event.");
-                  }
+            // onerror が先に発生していたら処理中断
+            if (liffSdkLoadFailed) {
+                 console.log("DOMContentLoaded: Aborting initialization because LIFF SDK load failed (onerror).");
+                 return;
+            }
 
-                  const storage = firebase.storage();
-                  const remoteConfig = firebase.remoteConfig();
-                  console.log("Firebase storage and remoteConfig objects obtained.");
+            // 少し待って liff オブジェクトが存在するか確認 (保険的措置)
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-                  remoteConfig.settings = {
-                      minimumFetchIntervalMillis: 3600000, // 1 hour
-                      fetchTimeoutMillis: 10000 // 10 seconds
-                  };
-                  remoteConfig.defaultConfig = {
-                      'liff_id': '2008345232-zq4A3Vg3' // ★★★ 新しい LIFF ID ★★★
-                  };
-                  console.log("Remote Config settings applied.");
+            try {
+                // この時点でも liff が未定義なら読み込み失敗と判断
+                if (typeof liff === 'undefined') {
+                    // onerror がトリガーされなかった場合のフォールバック
+                    console.error("LIFF SDK object (liff) is still undefined after timeout. Check Network tab for sdk.js loading errors (e.g., 403 Forbidden).");
+                     handleLiffSdkLoadError(); // エラー処理を呼び出す
+                    return; // 処理中断
+                }
 
-                  console.log("Calling main function with Firebase services...");
-                  main({ storage, remoteConfig }); // Firebaseサービスを渡す
-                  mainCalled = true; // 呼び出し済みフラグ
+                // liff オブジェクトが存在すれば初期化試行
+                console.log(`Attempting liff.init() with ID: ${liffId}`);
+                 loadingScreen.querySelector('p').textContent = 'LIFFを初期化中...'; // メッセージ変更
+                await liff.init({ liffId: liffId });
+                console.log("liff.init() succeeded!");
 
-              } catch (error) {
-                  console.error("Error during Firebase setup or main() call:", error);
-                  // main.js の initializeAppFailure を呼ぶ試み
-                  if (typeof initializeAppFailure === 'function') {
-                    initializeAppFailure("アプリケーションの初期化中にエラーが発生しました: " + error.message);
-                  } else {
-                    // フォールバックで最低限のエラー表示
-                    document.body.innerHTML = `<div style="color:red;padding:20px;">初期化エラー: ${error.message}</div>`;
-                  }
-                  mainCalled = true; // エラーでも呼び出し済み
-              }
-          };
+                // --- 成功時の処理 (変更なし) ---
+                if(resultMessage) {
+                    resultMessage.textContent = "LIFFの初期化に成功しました！";
+                    resultMessage.style.color = "green";
+                    resultMessage.style.display = "block";
+                }
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    console.log("Profile:", profile);
+                     if(resultMessage) resultMessage.innerHTML += `<br>こんにちは、${profile.displayName} さん！`;
+                } else {
+                     if(resultMessage) resultMessage.innerHTML += "<br>LINEにログインしていません。";
+                }
 
-          // firebase-initialized イベントリスナー
-          document.addEventListener('firebase-initialized', () => {
-              firebaseInitialized = true;
-              console.log("firebase-initialized event received.");
-              tryInitializeApp(); // Firebase初期化後にアプリ初期化を試みる
-          });
-
-          // DOMContentLoaded の時点で firebase が利用可能かチェックし、可能なら初期化試行
-          if (typeof firebase !== 'undefined') {
-              console.log("Firebase object already defined on DOMContentLoaded. Attempting init...");
-              // firebase-initialized が既に発火済みの場合もあるため、直接試行
-              tryInitializeApp();
-          } else {
-              console.log("Firebase object not defined yet on DOMContentLoaded, waiting for firebase-initialized event...");
-          }
-      });
+            } catch (error) {
+                console.error("LIFF Initialization failed:", error);
+                if(resultMessage) {
+                    resultMessage.textContent = `LIFF初期化エラー: ${error.message}`;
+                    resultMessage.style.color = "red";
+                    resultMessage.style.display = "block";
+                }
+            } finally {
+                if (loadingScreen && loadingScreen.style.display !== 'none') {
+                    loadingScreen.style.display = 'none';
+                }
+            }
+        });
     </script>
 </body>
 </html>
