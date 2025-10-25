@@ -4,29 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>YHD AIパーショナル診断</title>
+    <title>YHD AIパーソナル診断</title>
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Firebase SDK (Head内で読み込む) -->
+    <!-- Firebase SDK (Compat) - Provided by Hosting -->
     <script src="/__/firebase/12.4.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/12.4.0/firebase-auth-compat.js"></script>
     <script src="/__/firebase/12.4.0/firebase-storage-compat.js"></script>
     <script src="/__/firebase/12.4.0/firebase-remote-config-compat.js"></script>
-    <!-- Firebase Init Script (Head内で読み込む) -->
+    <!-- Firebase Init Script - Provided by Hosting -->
     <script src="/__/firebase/init.js"></script>
 
-    <!-- ★★★ LIFF SDK を Head 内で読み込む ★★★ -->
-    <script src="https://static.line-scdn.net/liff/edge/2.23.0/sdk.js" charset="utf-8"></script>
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" charset="utf-8"></script>
+
+    <!-- Global Helper Functions -->
+    <script>
+        // Define fallback functions in global scope EARLY
+        function initializeAppFailureFallback(errorMessage) {
+            console.error("[initializeAppFailureFallback] Triggered with:", errorMessage);
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) loadingScreen.style.display = 'none';
+            const bodyElement = document.body || document.createElement('body'); // Ensure body exists
+            // Escape the error message before inserting into HTML
+            const safeErrorMessage = escapeHtmlFallback(errorMessage);
+            bodyElement.innerHTML = `<div style="padding: 20px; text-align: center; color: red; background-color: #fff0f0; border: 1px solid red; border-radius: 8px; max-width: 600px; margin: 20px auto;"><h2>アプリケーションエラー</h2><p>${safeErrorMessage}</p><p>時間をおいて再度お試しください。</p></div>`;
+            if (!document.body) document.documentElement.appendChild(bodyElement);
+            bodyElement.style.cssText = `display: flex; justify-content: center; align-items: flex-start; padding-top: 50px; min-height: 100vh;`;
+        }
+
+        function escapeHtmlFallback(unsafe) {
+             if (typeof unsafe !== 'string') return '';
+             return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\//g, "&#x2F;");
+        }
+    </script>
 
 </head>
-<body>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
     <!-- ローディング画面 -->
-    <div id="loading-screen" class="loading-container">
+    <div id="loading-screen" class="loading-container" style="display: block;">
         <div class="spinner"></div>
         <p>アプリを準備しています...</p>
     </div>
 
-    <!-- 各フェーズのコンテナ -->
-    <div id="phase1" class="phase-container">
+    <!-- 各フェーズのコンテナ (内容は変更なし) -->
+    <div id="phase1" class="phase-container" style="display: none;">
         <div class="card">
             <img src="images/YHDlogo2.gif" alt="YHD AI Diagnosis Logo" class="logo">
             <h1 class="main-title">YHD × AI 『似合わせ』診断</h1>
@@ -37,7 +59,7 @@
             <button id="start-btn" class="btn-primary">診断を始める</button>
         </div>
     </div>
-    <div id="phase2" class="phase-container">
+    <div id="phase2" class="phase-container" style="display: none;">
         <div class="card">
             <h2 class="form-title">プロフィール入力</h2>
             <div class="form-group">
@@ -47,113 +69,127 @@
             <div class="form-group">
                 <label>性別</label>
                 <div class="gender-selection">
-                    <input type="radio" id="female" name="gender" value="female" checked>
-                    <label for="female">女性</label>
-                    <input type="radio" id="male" name="gender" value="male">
-                    <label for="male">男性</label>
-                    <input type="radio" id="other" name="gender" value="other">
-                    <label for="other">その他</label>
+                    <input type="radio" id="female" name="gender" value="female" checked> <label for="female">女性</label>
+                    <input type="radio" id="male" name="gender" value="male"> <label for="male">男性</label>
+                    <input type="radio" id="other" name="gender" value="other"> <label for="other">その他</label>
                 </div>
             </div>
             <button id="next-to-upload-btn" class="btn-dark">撮影に進む</button>
         </div>
     </div>
-    <div id="phase3" class="phase-container">
-        <div class="card">
-            <h2 class="form-title">写真・動画撮影</h2>
-            <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
-            <div class="upload-list">
-                <div id="item-front-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと写るように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-side-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さがわかるように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-back-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h3l2-2h6l2 2h3v18H4V4zm8 14c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z"/><circle cx="12" cy="12" r="4"/></svg></div><div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型がわかるように</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-front-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：正面 (3秒)</strong><span>ゆっくりと左右に顔を動かす</span></div><button class="btn-outline">撮影する</button></div>
-                <div id="item-back-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div><div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動きがわかるように</span></div><button class="btn-outline">撮影する</button></div>
-            </div>
-            <button id="request-diagnosis-btn" class="btn-dark btn-disabled" disabled>AI診断をリクエストする</button>
-        </div>
+     <div id="phase3" class="phase-container" style="display: none;">
+         <div class="card">
+             <h2 class="form-title">写真・動画撮影</h2>
+             <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
+             <div class="upload-list">
+                 <div id="item-front-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon">📷</div><div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと</span></div><button class="btn-outline">撮影</button></div>
+                 <div id="item-side-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon">📷</div><div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さ</span></div><button class="btn-outline">撮影</button></div>
+                 <div id="item-back-photo" class="upload-item"><input type="file" class="file-input" accept="image/*" hidden><div class="upload-icon">📷</div><div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型</span></div><button class="btn-outline">撮影</button></div>
+                 <div id="item-front-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon">🎬</div><div class="upload-text"><strong>動画：正面 (3秒)</strong><span>左右に顔を動かす</span></div><button class="btn-outline">撮影</button></div>
+                 <div id="item-back-video" class="upload-item"><input type="file" class="file-input" accept="video/*" hidden><div class="upload-icon">🎬</div><div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動き</span></div><button class="btn-outline">撮影</button></div>
+             </div>
+             <button id="request-diagnosis-btn" class="btn-dark btn-disabled" disabled>AI診断をリクエスト</button>
+         </div>
+     </div>
+     <div id="phase3.5" class="phase-container" style="display: none;">
+         <div class="card">
+             <div class="spinner"></div>
+             <h2 class="form-title" style="margin-top: 25px; margin-bottom: 10px;">AIが診断中です</h2>
+             <p class="description">しばらくお待ちください...</p>
+         </div>
+     </div>
+     <div id="phase4" class="phase-container" style="display: none;">
+         <div class="card">
+             <h2 class="form-title">AI診断結果</h2>
+             <div class="result-section"><h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3><div id="face-results" class="result-grid"></div></div>
+             <div class="result-section"><h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3><div id="skeleton-results" class="result-grid"></div></div>
+             <div class="result-section"><h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー</h3><div id="personal-color-results" class="result-grid"></div></div>
+             <button id="next-to-proposal-btn" class="btn-dark">AI提案を見る</button>
+         </div>
+     </div>
+     <div id="phase5" class="phase-container" style="display: none;">
+         <div class="card">
+             <h2 class="form-title">AIパーソナル提案</h2>
+             <div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル</h3><div id="hairstyle-proposal" class="proposal-grid"></div></div>
+             <div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー</h3><div id="haircolor-proposal" class="proposal-grid"></div></div>
+             <div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3><div class="top-stylist-comment"><p id="top-stylist-comment-text"></p></div></div>
+             <button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成</button>
+         </div>
+     </div>
+    <div id="phase6" class="phase-container" style="display: none;">
+         <div class="card">
+             <h2 class="form-title">ヘアスタイル合成結果</h2>
+             <img id="generated-image" src="" alt="合成されたヘアスタイル" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;">
+             <p class="description">AIが生成した合成画像です。</p>
+             <button id="back-to-proposal-btn" class="btn-outline">提案に戻る</button>
+         </div>
     </div>
-    <div id="phase3.5" class="phase-container"><div class="card"><div class="spinner"></div><h2 class="form-title" style="margin-top: 25px; margin-bottom: 10px;">AIが診断中です</h2><p class="description">診断リクエストを送信中...</p></div></div>
-    <div id="phase4" class="phase-container"><div class="card"><h2 class="form-title">AI診断結果</h2><div class="result-section"><h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3><div id="face-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3><div id="skeleton-results" class="result-grid"></div></div><div class="result-section"><h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー診断</h3><div id="personal-color-results" class="result-grid"></div></div><button id="next-to-proposal-btn" class="btn-dark">AIからの提案を見る</button></div></div>
-    <div id="phase5" class="phase-container"><div class="card"><h2 class="form-title">AIパーソナル提案</h2><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル提案</h3><div id="hairstyle-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー提案</h3><div id="haircolor-proposal" class="proposal-grid"></div></div><div class="proposal-section"><h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3><div class="top-stylist-comment"><p id="top-stylist-comment-text"></p></div></div><button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成する</button></div></div>
-    <div id="phase6" class="phase-container"></div>
 
-    <!-- UIロジックとメインのJavaScript (Body 末尾) -->
+    <!-- App Scripts (Load at the end, NO type="module") -->
     <script src="js/ui.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- 初期化処理 -->
+    <!-- Initialization Trigger -->
     <script>
-        // エラー表示用のシンプルな関数 (main.js が読み込めなかった場合のフォールバック)
-        function initializeAppFailureFallback(errorMessage) {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) loadingScreen.style.display = 'none';
-            const bodyElement = document.body;
-            bodyElement.innerHTML = `<div style="padding: 20px; text-align: center; color: red;"><h2>アプリケーションエラー</h2><p>${errorMessage}</p><p>時間をおいて再度お試しください。</p></div>`;
-            bodyElement.style.display = 'flex';
-            bodyElement.style.justifyContent = 'center';
-            bodyElement.style.alignItems = 'center';
-            bodyElement.style.minHeight = '100vh';
+        function attemptInitialization() {
+            // Check if all necessary components are ready globally
+            if (typeof firebase !== 'undefined' &&
+                typeof firebase.auth === 'function' && // Compat SDK provides functions here
+                typeof firebase.storage === 'function' &&
+                typeof firebase.remoteConfig === 'function' &&
+                typeof liff !== 'undefined' &&
+                typeof main === 'function' && // main() defined in main.js
+                typeof changePhase === 'function' // changePhase() defined in ui.js
+               )
+            {
+                console.log("All components ready. Setting up Auth listener...");
+                // Use onAuthStateChanged to ensure auth is ready (including anonymous sign-in)
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        console.log("Firebase Auth ready with user:", user.uid);
+                        // Only call main once after auth is ready
+                        if (!window.mainCalled) {
+                            window.mainCalled = true;
+                            console.log("Calling main()...");
+                            main(); // Call the main function from main.js
+                        }
+                    } else {
+                        // User is signed out. Attempt anonymous sign-in if not already trying.
+                        if (!window.signingInAnonymously) {
+                             window.signingInAnonymously = true;
+                             console.log("No Firebase user, attempting anonymous sign-in...");
+                             firebase.auth().signInAnonymously().catch((error) => {
+                                 console.error("Anonymous sign-in failed:", error);
+                                 initializeAppFailureFallback("Firebase匿名認証に失敗しました: " + error.message);
+                             }).finally(() => {
+                                window.signingInAnonymously = false;
+                             });
+                        }
+                    }
+                });
+            } else {
+                console.warn("Initialization components not ready yet, will retry...");
+                 // If firebase itself is missing after page load, it's a critical error
+                 if (document.readyState === 'complete' && typeof firebase === 'undefined') {
+                     initializeAppFailureFallback("Firebase SDK の読み込みに失敗しました。Hosting設定を確認してください。");
+                     return; // Stop retrying
+                 }
+                  // If LIFF SDK is missing after page load, it's a critical error
+                  if (document.readyState === 'complete' && typeof liff === 'undefined') {
+                     initializeAppFailureFallback("LIFF SDK の読み込みに失敗しました。ネットワーク接続またはLIFF設定を確認してください。");
+                     return; // Stop retrying
+                 }
+                setTimeout(attemptInitialization, 150); // Retry slightly longer
+            }
         }
 
-        // Firebase 初期化完了イベントを待ってから main を呼び出す
+        // Start checking after the DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOMContentLoaded event fired.");
-            document.addEventListener('firebase-initialized', () => {
-                console.log("firebase-initialized event received.");
-                try {
-                    if (typeof firebase === 'undefined' || typeof firebase.storage === 'undefined' || typeof firebase.remoteConfig === 'undefined') {
-                        throw new Error("Firebase object or services are still undefined after firebase-initialized event.");
-                    }
-
-                    // Firebaseサービスを取得
-                    const storage = firebase.storage();
-                    const remoteConfig = firebase.remoteConfig();
-                    console.log("Firebase storage and remoteConfig objects obtained.");
-
-                    // Remote Configの初期設定
-                    remoteConfig.settings = {
-                        minimumFetchIntervalMillis: 3600000, // 1 hour
-                        fetchTimeoutMillis: 10000 // 10 seconds
-                    };
-                    remoteConfig.defaultConfig = {
-                        'liff_id': '2008345232-zq4A3Vg3' // ★★★ 新しい LIFF ID (フォールバック) ★★★
-                    };
-                    console.log("Remote Config settings applied.");
-
-                    // main.js の main 関数を実行し、Firebaseサービスを渡す
-                    if (typeof main === 'function') {
-                        console.log("Calling main function...");
-                        main({ storage, remoteConfig }); // ★★★ 引数として渡す ★★★
-                    } else {
-                        throw new Error("main function not found in main.js. Check script loading order.");
-                    }
-
-                } catch (error) {
-                    console.error("Error during Firebase setup or main() call:", error);
-                    // main.js の initializeAppFailure が使えるか試す
-                    if (typeof initializeAppFailure === 'function') {
-                         initializeAppFailure("アプリケーションの初期化中にエラーが発生しました: " + error.message);
-                    } else {
-                         initializeAppFailureFallback("アプリケーションの初期化中にエラーが発生しました: " + error.message);
-                    }
-                }
-            });
-
-            // init.js が DOMContentLoaded より先に完了していた場合のフォールバック
-            if (typeof firebase !== 'undefined' && typeof firebase.storage !== 'undefined' && typeof firebase.remoteConfig !== 'undefined') {
-                 // 既に main が呼ばれていないことを確認する (より安全に)
-                 // AppState が main.js で定義されるため、ここでは AppState.firebase をチェックできない
-                 // 代わりに単純なフラグを使うか、イベントの再発火で対応
-                 if (!window.mainFunctionCalled) { // main.js側でフラグを立てる想定（今回は簡易的に）
-                    console.log("Firebase object already defined on DOMContentLoaded, simulating firebase-initialized.");
-                    const event = new Event('firebase-initialized');
-                    document.dispatchEvent(event);
-                 }
-            } else {
-                console.log("Firebase object/services not ready yet on DOMContentLoaded, waiting for firebase-initialized event...");
-            }
-
+             console.log("DOMContentLoaded fired. Starting initialization check...");
+             window.mainCalled = false; // Flag to ensure main() is called only once
+             attemptInitialization();
         });
     </script>
 </body>
 </html>
+

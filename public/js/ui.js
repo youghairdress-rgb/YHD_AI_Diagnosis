@@ -2,17 +2,24 @@
  * 指定されたフェーズ（画面）に表示を切り替える
  * @param {string} phaseId 表示したいフェーズのID ('phase1', 'phase2', etc.)
  */
+// NO export needed
 function changePhase(phaseId) {
-    // すべてのフェーズコンテナを非表示にする
+    console.log(`[changePhase] Changing to phase: ${phaseId}`);
+    // Hide all phase containers first
     document.querySelectorAll('.phase-container').forEach(container => {
-        container.style.display = 'none';
+        if (container) container.style.display = 'none'; // Add null check
     });
 
-    // 指定されたIDのフェーズコンテナのみを表示する
+    // Display the target phase container
     const targetPhase = document.getElementById(phaseId);
     if (targetPhase) {
         targetPhase.style.display = 'block';
+        console.log(`[changePhase] Phase ${phaseId} displayed.`);
     } else {
-        console.error(`Phase with id "${phaseId}" not found.`);
+        console.error(`[changePhase] Phase container with id "${phaseId}" not found.`);
+        // Fallback to phase1 if target is not found
+        const phase1 = document.getElementById('phase1');
+        if(phase1) phase1.style.display = 'block';
     }
 }
+
