@@ -9,26 +9,24 @@
     "rewrites": [
       {
         "source": "/requestDiagnosis",
-        // ★★★ オブジェクト形式で functionId と region を指定 ★★★
-        "function": {
-          "functionId": "requestDiagnosis",
-          "region": "us-central1" // Cloud Functionsをデプロイしたリージョン
-        }
+        "function": "requestDiagnosis" // シンプルな形式に戻した
       },
       {
         "source": "/helloWorld",
-        // ★★★ オブジェクト形式で functionId と region を指定 ★★★
-        "function": {
-          "functionId": "helloWorld",
-          "region": "us-central1" // Cloud Functionsをデプロイしたリージョン
-        }
+        "function": "helloWorld" // シンプルな形式に戻した
       },
+      // ★ 新しい書き換えルールを追加 ★
+      {
+        "source": "/generateHairstyleImage",
+        "function": "generateHairstyleImage"
+      },
+      // 「**」は必ず最後に配置
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
-    // "headers": [ ... ]
+    // "headers": [ ... ] // headersは一旦コメントアウトのまま
   },
   "functions": {
     "source": "functions",

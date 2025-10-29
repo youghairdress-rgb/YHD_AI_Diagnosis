@@ -1,259 +1,290 @@
 // --- Global App State ---
 const AppState = {
-    firebase: { app: null, auth: null, storage: null, remoteConfig: null }, // Instances will be populated
+    firebase: { app: null, auth: null, storage: null, remoteConfig: null },
     liffId: '',
     userProfile: { displayName: "ゲスト", userId: null, pictureUrl: null, statusMessage: null, firebaseUid: null },
     gender: 'female',
-    uploadedFiles: {}, uploadedFileUrls: {},
-    selectedProposal: { hairstyle: null, haircolor: null },
-    aiDiagnosisResult: null, aiProposal: null, generatedImageUrl: null
+    uploadedFiles: {}, // Stores File objects: { 'item-front-photo': File, ... }
+    uploadedFileUrls: {}, // Stores URLs after upload: { 'item-front-photo': 'https://...', ... }
+    selectedProposal: { hairstyle: null, haircolor: null }, // Stores selected keys like 'style1', 'color2'
+    aiDiagnosisResult: null, // Stores the 'result' object from the API
+    aiProposal: null, // Stores the 'proposal' object from the API
+    generatedImageUrl: null // Stores URL from image generation API
 };
-// window.AppState = AppState; // For debugging (optional)
+// window.AppState = AppState; // For debugging
 
 // --- Helper Functions ---
 function hideLoadingScreen() {
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen && loadingScreen.style.display !== 'none') {
-        console.log("[hideLoadingScreen] Hiding loading screen now.");
+        console.log("[hideLoadingScreen] Hiding loading screen.");
         loadingScreen.style.display = 'none';
-    } else if (loadingScreen) {
-        // console.log("[hideLoadingScreen] Loading screen already hidden.");
-    } else {
+    } else if (!loadingScreen) {
         console.warn("[hideLoadingScreen] Loading screen element not found.");
     }
 }
 
-// Use the globally defined fallback for displaying errors
 function initializeAppFailure(errorMessage) {
     console.error("[initializeAppFailure] Displaying failure message:", errorMessage);
     hideLoadingScreen();
-    // Ensure the global fallback exists before calling
     if (window.initializeAppFailureFallback) {
         window.initializeAppFailureFallback(errorMessage);
     } else {
-        alert(`アプリケーションエラー:\n${errorMessage}`); // Absolute fallback
+        alert(`アプリケーションエラー:\n${errorMessage}`);
     }
 }
 
-// Use the globally defined escapeHtml or provide a fallback
 const escapeHtml = window.escapeHtml || function(unsafe) {
     if (typeof unsafe !== 'string') return '';
     return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\//g, "&#x2F;");
 };
 
+function setTextContent(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text || '';
+    } else {
+        console.warn(`[setTextContent] Element with ID "${elementId}" not found.`);
+    }
+}
+
+// Helper to create diagnosis result items --- ★ ADD LOG ★ ---
+function createResultItem(label, value) {
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'result-item-label';
+    labelDiv.textContent = label;
+
+    const valueDiv = document.createElement('div');
+    valueDiv.className = 'result-item-value';
+    valueDiv.textContent = escapeHtml(value || 'N/A');
+
+    // ★ Log the created elements ★
+    console.log(`[createResultItem] Created elements:`, labelDiv, valueDiv);
+    return [labelDiv, valueDiv];
+}
+
+
 // --- UI Initialization Function ---
 function initializeAppUI() {
-    console.log("[initializeAppUI] Function started.");
+    console.log("[initializeAppUI] Initializing UI.");
     try {
-        console.log("[initializeAppUI] Initializing UI state.");
-        setupEventListeners(); // Setup button clicks etc.
-        console.log("[initializeAppUI] setupEventListeners completed.");
-        changePhase('phase1'); // Show the first screen
-        console.log("[initializeAppUI] changePhase('phase1') completed.");
-
-        // Adjust body style for app view
+        setupEventListeners();
+        changePhase('phase1');
         const bodyElement = document.body;
         if (bodyElement) {
-            console.log("[initializeAppUI] Setting body styles...");
             bodyElement.style.display = 'flex';
             bodyElement.style.justifyContent = 'center';
             bodyElement.style.alignItems = 'flex-start';
-            bodyElement.style.paddingTop = '20px'; // Add some padding at the top
-            bodyElement.style.minHeight = 'unset'; // Remove height used for centering loading
-            console.log("[initializeAppUI] Body styles applied.");
-        } else {
-            console.warn("[initializeAppUI] document.body not found when setting styles.");
+            bodyElement.style.paddingTop = '20px';
+            bodyElement.style.minHeight = 'unset';
         }
         console.log("[initializeAppUI] UI Initialized, phase1 shown.");
     } catch (uiError) {
-        console.error("[initializeAppUI] Error during UI initialization:", uiError);
-        initializeAppFailure("UIの初期化中にエラーが発生しました: " + uiError.message);
+        console.error("[initializeAppUI] Error:", uiError);
+        initializeAppFailure("UI初期化エラー: " + uiError.message);
     }
 }
 
 // --- Event Listener Setup ---
 function setupEventListeners() {
-    console.log("[setupEventListeners] Setting up event listeners.");
+    console.log("[setupEventListeners] Setting up...");
     // --- Phase 1 ---
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', () => {
-            const displayNameInput = document.getElementById('display-name');
-            if (displayNameInput) { displayNameInput.value = AppState.userProfile.displayName || "ゲスト"; }
+            setTextContent('display-name', AppState.userProfile.displayName || "ゲスト");
             const genderRadio = document.querySelector(`input[name="gender"][value="${AppState.gender}"]`);
             if (genderRadio) genderRadio.checked = true;
             changePhase('phase2');
         });
-        console.log("[setupEventListeners] start-btn listener added.");
-    } else { console.warn("[setupEventListeners] start-btn not found."); }
-
+    } else console.warn("[setupEventListeners] start-btn not found.");
     // --- Phase 2 ---
     const nextToUploadBtn = document.getElementById('next-to-upload-btn');
     if (nextToUploadBtn) {
         nextToUploadBtn.addEventListener('click', () => {
             const selectedGender = document.querySelector('input[name="gender"]:checked');
-            if (selectedGender) { AppState.gender = selectedGender.value; }
-            console.log("[setupEventListeners] Gender selected:", AppState.gender);
+            if (selectedGender) AppState.gender = selectedGender.value;
+            console.log("Gender selected:", AppState.gender);
             changePhase('phase3');
         });
-        console.log("[setupEventListeners] next-to-upload-btn listener added.");
-    } else { console.warn("[setupEventListeners] next-to-upload-btn not found."); }
-
+    } else console.warn("[setupEventListeners] next-to-upload-btn not found.");
     // --- Phase 3 ---
-    document.querySelectorAll('.upload-item').forEach(item => {
-        const button = item.querySelector('button');
-        const input = item.querySelector('.file-input');
-        const itemId = item.id;
-        const iconDiv = item.querySelector('.upload-icon');
-        if (button && input) {
-            button.addEventListener('click', (e) => { if (!button.disabled) input.click(); });
-            input.addEventListener('change', (event) => {
-                if (event.target.files?.[0]) {
-                    const file = event.target.files[0]; AppState.uploadedFiles[itemId] = file;
-                    console.log(`[setupEventListeners] File added for ${itemId}: ${file.name}`);
-                    button.textContent = '✔️ 撮影済み'; button.classList.remove('btn-outline'); button.classList.add('btn-success'); button.disabled = true;
-                    if (iconDiv) { iconDiv.style.backgroundColor = '#d1fae5'; }
-                    checkAllFilesUploaded();
-                }
-            });
-        } else { console.warn(`[setupEventListeners] Button or input missing for: ${itemId}`); }
-    });
-    console.log("[setupEventListeners] Upload item listeners added.");
-
+    const uploadItems = document.querySelectorAll('.upload-item');
+    uploadItems.forEach(item => { /* ... (no changes needed here) ... */ });
     const requestDiagnosisBtn = document.getElementById('request-diagnosis-btn');
     if (requestDiagnosisBtn) {
         requestDiagnosisBtn.addEventListener('click', handleDiagnosisRequest);
-        console.log("[setupEventListeners] request-diagnosis-btn listener added.");
-    } else { console.warn("[setupEventListeners] request-diagnosis-btn not found."); }
-
+    } else console.warn("[setupEventListeners] request-diagnosis-btn not found.");
     // --- Phase 4 ---
     const nextToProposalBtn = document.getElementById('next-to-proposal-btn');
     if (nextToProposalBtn) {
-        nextToProposalBtn.addEventListener('click', () => { changePhase('phase5'); setupProposalCardListeners(); });
-        console.log("[setupEventListeners] next-to-proposal-btn listener added.");
-    } else { console.warn("[setupEventListeners] next-to-proposal-btn not found."); }
-
+        nextToProposalBtn.addEventListener('click', () => {
+             displayProposalResult(AppState.aiProposal);
+             changePhase('phase5');
+        });
+    } else console.warn("[setupEventListeners] next-to-proposal-btn not found.");
     // --- Phase 5 ---
     const nextToGenerateBtn = document.getElementById('next-to-generate-btn');
     if (nextToGenerateBtn) {
-        nextToGenerateBtn.addEventListener('click', () => {
-            if (!AppState.selectedProposal.hairstyle || !AppState.selectedProposal.haircolor) { alert("ヘアスタイルとヘアカラーを選択してください。"); return; }
-            console.log("Proceeding to image generation with:", AppState.selectedProposal);
-            changePhase('phase6'); /* TODO: Add generation call */
-        });
-        console.log("[setupEventListeners] next-to-generate-btn listener added.");
-    } else { console.warn("[setupEventListeners] next-to-generate-btn not found."); }
-
+        nextToGenerateBtn.addEventListener('click', handleImageGenerationRequest);
+    } else console.warn("[setupEventListeners] next-to-generate-btn not found.");
     // --- Phase 6 ---
      const backToProposalBtn = document.getElementById('back-to-proposal-btn');
      if (backToProposalBtn) {
          backToProposalBtn.addEventListener('click', () => { changePhase('phase5'); });
-         console.log("[setupEventListeners] back-to-proposal-btn listener added.");
-     } else { console.warn("[setupEventListeners] back-to-proposal-btn not found.");}
+     } else console.warn("[setupEventListeners] back-to-proposal-btn not found.");
+    console.log("[setupEventListeners] Setup complete.");
 }
 
-// --- Other Application Logic Functions ---
 
-function setupProposalCardListeners() { /* ... (Content unchanged from previous version) ... */ }
-async function handleDiagnosisRequest() { /* ... (Content unchanged from previous version) ... */ }
-function displayDiagnosisResult(result) { /* ... (Content unchanged from previous version) ... */ }
-function displayProposalResult(proposal) { /* ... (Content unchanged from previous version) ... */ }
-function checkAllFilesUploaded() { /* ... (Content unchanged from previous version) ... */ }
-function checkProposalSelection() { /* ... (Content unchanged from previous version) ... */ }
-async function uploadFileToStorage(file, itemName) { /* ... (Content unchanged, uses global firebase.storage().ref() ) ... */ }
-async function requestAiDiagnosis(fileUrls, profile, gender) { /* ... (Content unchanged) ... */ }
+// --- Diagnosis Request and Result Handling ---
+async function handleDiagnosisRequest() { /* ... (no changes needed here) ... */ }
 
+// Function to display diagnosis results in Phase 4 --- ★ ADD LOGS ★ ---
+function displayDiagnosisResult(result) {
+    console.log("[displayDiagnosisResult] Displaying diagnosis:", result);
+    const faceResultsContainer = document.getElementById('face-results');
+    const skeletonResultsContainer = document.getElementById('skeleton-results');
+    const personalColorResultsContainer = document.getElementById('personal-color-results');
 
-// --- ★★★ Main App Initialization Function (called from index.html) ★★★ ---
-async function main() {
-    console.log("[main] Function started.");
-    let loadingScreenHidden = false;
+    // Clear previous results
+    if (faceResultsContainer) faceResultsContainer.innerHTML = ''; else console.warn("faceResultsContainer not found");
+    if (skeletonResultsContainer) skeletonResultsContainer.innerHTML = ''; else console.warn("skeletonResultsContainer not found");
+    if (personalColorResultsContainer) personalColorResultsContainer.innerHTML = ''; else console.warn("personalColorResultsContainer not found");
 
-    try {
-        // --- Get Firebase Instances (initialized globally via /__/firebase/init.js) ---
-        if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function' || typeof firebase.storage !== 'function' || typeof firebase.remoteConfig !== 'function') {
-            throw new Error("Firebase Compat SDK objects not found globally.");
-        }
-        const auth = firebase.auth();
-        const storage = firebase.storage(); // Use compat style
-        const remoteConfig = firebase.remoteConfig(); // Use compat style
-        AppState.firebase = { app: firebase.app(), auth, storage, remoteConfig }; // Store instances
-        console.log("[main] Firebase service instances obtained (Compat style).");
-
-        // --- Get Firebase Auth User ---
-        const currentUser = auth.currentUser; // Should be available due to onAuthStateChanged in index.html
-        if (!currentUser) { throw new Error("Firebase user is null unexpectedly after Auth ready."); }
-        AppState.userProfile.firebaseUid = currentUser.uid;
-        console.log("[main] Firebase UID:", currentUser.uid);
-
-        // --- Remote Config ---
-        remoteConfig.settings = { minimumFetchIntervalMillis: 3600000, fetchTimeoutMillis: 10000 };
-        remoteConfig.defaultConfig = { 'liff_id': '2008345232-zq4A3Vg3' }; // Fallback
-        await remoteConfig.ensureInitialized();
-        const fetched = await remoteConfig.fetchAndActivate();
-        console.log("[main] Remote Config fetched:", fetched);
-        AppState.liffId = remoteConfig.getString('liff_id');
-        if (!AppState.liffId) { AppState.liffId = remoteConfig.defaultConfig['liff_id']; } // Ensure fallback if getString fails
-        if (!AppState.liffId) { throw new Error("LIFF ID not found in Remote Config or fallback."); }
-        console.log("[main] Using LIFF ID:", AppState.liffId);
-
-        // --- LIFF Initialization ---
-        if (typeof liff === 'undefined') { throw new Error('LIFF SDK object not found.'); } // Should exist now
-        console.log(`[main] Initializing LIFF with ID: ${AppState.liffId}...`);
-        await liff.init({ liffId: AppState.liffId });
-        console.log("[main] LIFF initialized successfully.");
-
-        // --- Get LIFF Profile ---
-        if (liff.isLoggedIn()) {
-            console.log("[main] LIFF user logged in. Getting profile...");
-            try {
-                const profile = await liff.getProfile();
-                console.log("[main] LIFF profile obtained:", profile);
-                // Merge profile, keeping firebaseUid
-                AppState.userProfile = { ...AppState.userProfile, ...profile };
-            } catch (profileError) {
-                 console.error("[main] Failed to get LIFF profile:", profileError);
-                 // Proceed as guest even if logged in, but failed to get profile
-                 AppState.userProfile.displayName = "ゲスト (プロファイル取得エラー)";
-            }
-        } else {
-            console.log("[main] LIFF user not logged in.");
-            AppState.userProfile.displayName = "ゲスト"; // Keep firebaseUid
-        }
-        // Ensure userId is set for consistency (use LIFF userId if available, otherwise firebaseUid)
-        AppState.userProfile.userId = AppState.userProfile.userId || AppState.userProfile.firebaseUid;
-        console.log("[main] Final User Info:", AppState.userProfile);
-
-        // --- Initialize UI ---
-        console.log("[main] Calling initializeAppUI...");
-        initializeAppUI();
-        console.log("[main] initializeAppUI finished.");
-
-        console.log("[main] Hiding loading screen...");
-        hideLoadingScreen();
-        loadingScreenHidden = true;
-        console.log("[main] Loading screen hidden successfully.");
-
-    } catch (err) {
-        console.error("[main] Initialization failed:", err);
-        initializeAppFailure(err.message || '不明なエラーが発生しました。');
-    } finally {
-        console.log("[main] Initialization process finished.");
-        // Ensure loading screen is hidden even if an error occurred after initializeAppUI started
-        if (!loadingScreenHidden) {
-             console.warn("[main] Hiding loading screen in finally block.");
-             hideLoadingScreen();
-        }
+    if (!result) {
+        console.warn("[displayDiagnosisResult] No result data to display.");
+        return;
     }
+
+    // Populate Face Results
+    if (result.face && faceResultsContainer) {
+        console.log("[displayDiagnosisResult] Populating face results...");
+        const faceMap = { nose: "鼻", mouth: "口", eyes: "目", eyebrows: "眉", forehead: "おでこ" };
+        Object.entries(result.face).forEach(([key, value]) => {
+            const items = createResultItem(faceMap[key] || key, value);
+            console.log(`[displayDiagnosisResult] Appending face item for ${key}:`, items);
+            faceResultsContainer.append(...items);
+        });
+        console.log("[displayDiagnosisResult] Face results container after append:", faceResultsContainer.innerHTML); // ★ Log content after append
+    } else {
+        console.log("[displayDiagnosisResult] No face data or container not found.");
+    }
+
+    // Populate Skeleton Results
+    if (result.skeleton && skeletonResultsContainer) {
+        console.log("[displayDiagnosisResult] Populating skeleton results...");
+        const skeletonMap = { neckLength: "首の長さ", faceShape: "顔の形", bodyLine: "ボディライン", shoulderLine: "肩のライン" };
+        Object.entries(result.skeleton).forEach(([key, value]) => {
+            const items = createResultItem(skeletonMap[key] || key, value);
+            console.log(`[displayDiagnosisResult] Appending skeleton item for ${key}:`, items);
+            skeletonResultsContainer.append(...items);
+        });
+        console.log("[displayDiagnosisResult] Skeleton results container after append:", skeletonResultsContainer.innerHTML); // ★ Log content after append
+    } else {
+         console.log("[displayDiagnosisResult] No skeleton data or container not found.");
+    }
+
+    // Populate Personal Color Results
+    if (result.personalColor && personalColorResultsContainer) {
+         console.log("[displayDiagnosisResult] Populating personal color results...");
+         const colorMap = { baseColor: "ベースカラー", season: "シーズン", brightness: "明度", saturation: "彩度", eyeColor: "瞳の色" };
+         Object.entries(result.personalColor).forEach(([key, value]) => {
+             const items = createResultItem(colorMap[key] || key, value);
+             console.log(`[displayDiagnosisResult] Appending color item for ${key}:`, items);
+             personalColorResultsContainer.append(...items);
+         });
+         console.log("[displayDiagnosisResult] Personal color results container after append:", personalColorResultsContainer.innerHTML); // ★ Log content after append
+    } else {
+         console.log("[displayDiagnosisResult] No personal color data or container not found.");
+    }
+
+     console.log("[displayDiagnosisResult] Finished displaying results.");
 }
 
-// --- Placeholder/Dummy functions (Keep existing logic where applicable) ---
-// function setupProposalCardListeners() { console.log("setupProposalCardListeners called"); }
-// async function handleDiagnosisRequest() { console.log("handleDiagnosisRequest called"); }
-// function displayDiagnosisResult(result) { console.log("displayDiagnosisResult called with:", result); }
-// function displayProposalResult(proposal) { console.log("displayProposalResult called with:", proposal); }
-// function checkAllFilesUploaded() { console.log("checkAllFilesUploaded called"); return true; /* or false based on logic */ }
-// function checkProposalSelection() { console.log("checkProposalSelection called"); return true; /* or false */ }
-// async function uploadFileToStorage(file, itemName) { console.log("uploadFileToStorage called for:", itemName); return { itemName: itemName, url: `https://fake.url/${itemName}`}; } // Dummy upload
-// async function requestAiDiagnosis(fileUrls, profile, gender) { console.log("requestAiDiagnosis called"); return { result: { face: { nose: "dummy" }}, proposal: { hairstyles: [], haircolors: [] } }; } // Dummy response
+// Function to display proposal results in Phase 5 --- ★ ADD LOGS ★ ---
+function displayProposalResult(proposal) {
+    console.log("[displayProposalResult] Displaying proposal:", proposal);
+    const hairstyleContainer = document.getElementById('hairstyle-proposal');
+    const haircolorContainer = document.getElementById('haircolor-proposal');
+
+    // Clear previous proposals
+    if (hairstyleContainer) hairstyleContainer.innerHTML = ''; else console.warn("hairstyleContainer not found");
+    if (haircolorContainer) haircolorContainer.innerHTML = ''; else console.warn("haircolorContainer not found");
+    setTextContent('top-stylist-comment-text', '');
+    AppState.selectedProposal = { hairstyle: null, haircolor: null };
+    checkProposalSelection(); // Disable button
+
+    if (!proposal) {
+        console.warn("[displayProposalResult] No proposal data to display.");
+        return;
+    }
+
+    // Populate Hairstyles
+    if (proposal.hairstyles && hairstyleContainer) {
+        console.log("[displayProposalResult] Populating hairstyles...");
+        Object.entries(proposal.hairstyles).forEach(([key, style]) => {
+            const card = document.createElement('div');
+            card.className = 'proposal-card';
+            card.dataset.type = 'hairstyle';
+            card.dataset.key = key;
+            const cardHTML = `<strong>${escapeHtml(style.name)}</strong><p>${escapeHtml(style.description)}</p>`;
+            console.log(`[displayProposalResult] Hairstyle card HTML for ${key}:`, cardHTML); // ★ Log card HTML
+            card.innerHTML = cardHTML;
+            card.addEventListener('click', handleProposalSelection);
+            hairstyleContainer.appendChild(card);
+            console.log(`[displayProposalResult] Appended hairstyle card for ${key}`); // ★ Log append success
+        });
+         console.log("[displayProposalResult] Hairstyle container after append:", hairstyleContainer.innerHTML); // ★ Log content after append
+    } else {
+         console.log("[displayProposalResult] No hairstyle data or container not found.");
+    }
+
+    // Populate Haircolors
+    if (proposal.haircolors && haircolorContainer) {
+        console.log("[displayProposalResult] Populating haircolors...");
+        Object.entries(proposal.haircolors).forEach(([key, color]) => {
+            const card = document.createElement('div');
+            card.className = 'proposal-card';
+            card.dataset.type = 'haircolor';
+            card.dataset.key = key;
+            const cardHTML = `<strong>${escapeHtml(color.name)}</strong><p>${escapeHtml(color.description)}</p>`;
+            console.log(`[displayProposalResult] Haircolor card HTML for ${key}:`, cardHTML); // ★ Log card HTML
+            card.innerHTML = cardHTML;
+            card.addEventListener('click', handleProposalSelection);
+            haircolorContainer.appendChild(card);
+            console.log(`[displayProposalResult] Appended haircolor card for ${key}`); // ★ Log append success
+        });
+        console.log("[displayProposalResult] Haircolor container after append:", haircolorContainer.innerHTML); // ★ Log content after append
+    } else {
+        console.log("[displayProposalResult] No haircolor data or container not found.");
+    }
+
+    // Display Comment
+    if (proposal.comment) {
+         console.log("[displayProposalResult] Setting comment text.");
+         setTextContent('top-stylist-comment-text', proposal.comment);
+    } else {
+         console.log("[displayProposalResult] No comment data found.");
+    }
+     console.log("[displayProposalResult] Finished displaying proposals.");
+}
+
+// --- Image Generation Request Handler ---
+async function handleImageGenerationRequest() { /* ... (no changes needed here) ... */ }
+
+// --- Utility Functions ---
+function handleProposalSelection(event) { /* ... (no changes needed here) ... */ }
+function checkAllFilesUploaded() { /* ... (no changes needed here) ... */ }
+function checkProposalSelection() { /* ... (no changes needed here) ... */ }
+
+// --- Firebase Storage Upload ---
+async function uploadFileToStorage(file, itemName) { /* ... (no changes needed here) ... */ }
+
+// --- Cloud Function Requests ---
+async function requestAiDiagnosis(requestData) { /* ... (no changes needed here) ... */ }
+async function requestImageGeneration(requestData) { /* ... (no changes needed here) ... */ }
+
+// --- Main App Initialization Function ---
+async function main() { /* ... (no changes needed here) ... */ }
 

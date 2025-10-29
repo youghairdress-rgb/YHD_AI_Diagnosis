@@ -1,21 +1,31 @@
+/* 基本設定 */
 :root {
     --primary-color: #2dd4bf; /* ティファニーブルー */
-    --dark-color: #1e3a5f;    /* 濃い青 */
-    --text-color: #555;      /* 基本テキスト */
-    --bg-color: #f7fdfc;      /* 背景色 */
+    --primary-color-light: #a7f3d0; /* 明るいティファニーブルー系 */
+    --dark-color: #0f172a;    /* より濃い青 (コントラスト用) */
+    --text-color: #334155;      /* 基本テキスト (少し濃く) */
+    --text-color-light: #64748b; /* 薄いテキスト */
+    --bg-color: #f8fafc;      /* 背景色 (少しだけ色味変更) */
+    --border-color: #e2e8f0;   /* 境界線 */
+    --card-bg: #ffffff;       /* カード背景 */
+    --success-color: #10b981;  /* 成功時の色 */
+    --disabled-color: #cbd5e1; /* 無効時の色 */
 }
 
+/* 全体のフォントとベーススタイル */
 body {
-    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    font-family: 'Inter', 'Noto Sans JP', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; /* モダンなフォントを追加 */
     margin: 0;
     padding: 20px;
     background-color: var(--bg-color);
     color: var(--text-color);
     display: flex;
     justify-content: center;
-    align-items: center; /* ローディングを中央に */
+    align-items: center; /* ローディングは中央に */
     min-height: 100vh;
     box-sizing: border-box;
+    font-size: 16px; /* ベースフォントサイズ */
+    line-height: 1.7; /* 行間を少し広げる */
 }
 
 /* --- ローディング画面 --- */
@@ -26,16 +36,17 @@ body {
 
 /* --- フェーズ管理 --- */
 .phase-container {
-    display: none; /* JSで制御するまで全フェーズを非表示 */
+    display: none; /* JSで制御 */
     width: 100%;
-    max-width: 420px;
+    max-width: 450px; /* 少しだけ幅を広げる */
 }
 
+/* カードスタイル調整 */
 .card {
-    background-color: #ffffff;
-    padding: 40px 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    background-color: var(--card-bg);
+    padding: 35px 30px; /* パディング微調整 */
+    border-radius: 24px; /* 角丸を大きく */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06); /* 影をソフトに */
     width: 100%;
     text-align: center;
     box-sizing: border-box;
@@ -43,31 +54,34 @@ body {
 
 /* --- Phase 1 Styles --- */
 .logo {
-    width: 150px;
-    height: 150px;
+    width: 130px; /* 少し小さく */
+    height: 130px;
     border-radius: 50%;
-    margin: 0 auto 25px auto;
+    margin: 0 auto 20px auto;
     display: block;
+    object-fit: cover; /* 画像がコンテナに収まるように */
 }
 
 .main-title {
-    font-size: 24px;
+    font-size: 26px; /* 少し大きく */
     color: var(--dark-color);
-    font-weight: bold;
-    margin-bottom: 15px;
+    font-weight: 700; /* 太めに */
+    margin-bottom: 10px;
 }
 
 .description {
-    color: var(--text-color);
-    line-height: 1.6;
-    margin-bottom: 30px;
+    color: var(--text-color-light); /* 少し薄い色に */
+    line-height: 1.7;
+    margin-bottom: 35px; /* ボタンとの間隔 */
+    font-size: 15px;
 }
 
 /* --- Form Styles --- */
 .form-title {
-    font-size: 22px;
+    font-size: 24px; /* 少し大きく */
     color: var(--dark-color);
-    margin-bottom: 30px;
+    margin-bottom: 35px;
+    font-weight: 600;
 }
 
 .form-group {
@@ -77,28 +91,46 @@ body {
 
 .form-group label {
     display: block;
-    font-weight: bold;
+    font-weight: 600; /* 少し太く */
     margin-bottom: 8px;
     color: var(--dark-color);
+    font-size: 14px; /* ラベルは少し小さく */
 }
 
 .form-control {
     width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 14px 16px; /* パディング調整 */
+    border: 1px solid var(--border-color);
+    border-radius: 12px; /* 角丸を大きく */
     font-size: 16px;
     box-sizing: border-box;
-    background-color: #f9f9f9;
+    background-color: #f9fafb; /* 背景色微調整 */
+    color: var(--text-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2); /* フォーカスリング */
+}
+/* Readonly input */
+.form-control[readonly] {
+    background-color: #f3f4f6;
+    color: var(--text-color-light);
+    cursor: not-allowed;
+}
+
+
+/* 性別選択 */
 .gender-selection {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between; /* 均等配置から変更 */
     align-items: center;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px; /* 角丸を大きく */
+    padding: 6px;
+    background-color: #f9fafb;
 }
 
 .gender-selection input[type="radio"] {
@@ -108,52 +140,59 @@ body {
 .gender-selection label {
     flex: 1;
     text-align: center;
-    padding: 10px 0;
-    margin: 0;
-    border-radius: 6px;
+    padding: 12px 0; /* パディング調整 */
+    margin: 0 3px; /* ラベル間の隙間 */
+    border-radius: 8px; /* 角丸 */
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    color: var(--text-color-light);
 }
 
 .gender-selection input[type="radio"]:checked + label {
     background-color: var(--primary-color);
     color: white;
-    font-weight: bold;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(45, 212, 191, 0.3);
 }
 
 /* --- Phase 3 Upload Styles --- */
 .upload-list {
-    margin-top: 10px;
-    margin-bottom: 30px;
+    margin-top: 15px;
+    margin-bottom: 35px;
 }
 
 .upload-item {
     display: flex;
     align-items: center;
     margin-bottom: 15px;
-    padding: 10px;
-    background-color: #f8f8f8;
-    border-radius: 12px;
-    border: 1px solid #eee;
+    padding: 12px 15px; /* パディング調整 */
+    background-color: #f9fafb;
+    border-radius: 14px; /* 角丸大きく */
+    border: 1px solid var(--border-color);
 }
 
 .upload-icon {
-    width: 40px;
-    height: 40px;
-    background-color: #eef2f7;
+    width: 44px; /* 少し大きく */
+    height: 44px;
+    background-color: #eef2ff; /* アイコン背景色変更 */
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-right: 15px;
     flex-shrink: 0;
+    color: #4f46e5; /* アイコン色 */
+    font-size: 20px; /* アイコンサイズ */
+    transition: background-color 0.2s ease, color 0.2s ease; /* アニメーション追加 */
 }
 
-.upload-icon svg {
-    width: 22px;
-    height: 22px;
-    fill: var(--dark-color);
+/* アップロード完了時のアイコン背景色 */
+.upload-icon.completed { /* JavaScript側でクラスを追加 */
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
 }
+
 
 .upload-text {
     flex-grow: 1;
@@ -162,42 +201,69 @@ body {
 
 .upload-text strong {
     display: block;
-    font-weight: bold;
+    font-weight: 600; /* 少し太く */
     color: var(--dark-color);
     font-size: 15px;
+    margin-bottom: 2px;
 }
 
 .upload-text span {
     font-size: 13px;
-    color: #888;
+    color: var(--text-color-light);
 }
 
+/* ボタン共通スタイル調整 */
+button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600; /* ボタンの文字を少し太く */
+}
+
+/* 撮影/選択ボタン */
 .btn-outline {
     background-color: white;
     color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-    padding: 8px 16px;
+    border: 1px solid var(--primary-color); /* 枠線を少し細く */
+    padding: 8px 18px; /* パディング調整 */
     border-radius: 20px;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
-.btn-outline:hover {
-    background-color: var(--primary-color);
-    color: white;
+.btn-outline:hover:not(:disabled) { /* disabledでない場合のみホバー */
+    background-color: #f0fdfa; /* ホバー背景色 */
+    transform: translateY(-1px);
 }
 
+.btn-outline:active:not(:disabled) { /* disabledでない場合のみクリック */
+    transform: translateY(0px);
+}
+
+/* 撮影完了ボタン */
 .btn-success {
-    background-color: #10b981;
+    background-color: var(--success-color);
     color: white;
-    border-color: #10b981;
+    border-color: var(--success-color);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: default; /* クリック不可なのでカーソル変更 */
 }
 
+.btn-success:disabled { /* 撮影完了ボタンは常にdisabledなのでスタイルを適用 */
+   opacity: 1; /* disabledでも見た目はそのまま */
+   cursor: default;
+}
+
+/* 無効化ボタン共通スタイル */
 .btn-disabled {
-    background-color: #ccc !important;
+    background-color: var(--disabled-color) !important;
+    border-color: var(--disabled-color) !important;
+    color: #94a3b8 !important; /* テキスト色 */
     cursor: not-allowed !important;
     box-shadow: none !important;
 }
@@ -206,15 +272,16 @@ body {
     transform: none !important;
 }
 
+
 /* --- Spinner Styles --- */
 .spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid rgba(45, 212, 191, 0.2);
+    width: 48px; /* 少し小さく */
+    height: 48px;
+    border: 4px solid rgba(45, 212, 191, 0.2); /* 線の太さ調整 */
     border-top-color: var(--primary-color);
     border-radius: 50%;
-    margin: 20px auto;
-    animation: spin 1s linear infinite;
+    margin: 25px auto; /* マージン調整 */
+    animation: spin 0.8s linear infinite; /* 少し速く */
 }
 
 @keyframes spin {
@@ -232,33 +299,38 @@ body {
 .result-title {
     font-size: 18px;
     color: var(--dark-color);
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--primary-color);
+    margin-bottom: 18px; /* マージン調整 */
+    padding-bottom: 8px; /* パディング調整 */
+    border-bottom: 2px solid var(--primary-color-light); /* 境界線の色変更 */
     display: flex;
     align-items: center;
+    font-weight: 600;
 }
 
 .result-icon {
-    font-size: 20px;
-    margin-right: 10px;
+    font-size: 22px; /* 少し大きく */
+    margin-right: 12px;
+    color: var(--primary-color); /* アイコンの色 */
 }
 
 .result-grid {
     display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 12px;
+    grid-template-columns: auto 1fr; /* ラベル幅は自動、値は残り */
+    gap: 10px 15px; /* ギャップ調整 */
+    padding-left: 5px; /* 左に少しインデント */
 }
 
 .result-item-label {
-    font-weight: bold;
-    color: #555;
+    font-weight: 500; /* 通常の太さに */
+    color: var(--text-color-light); /* 薄い色に */
+    font-size: 15px;
 }
 
 .result-item-value {
     color: var(--dark-color);
-    font-weight: bold;
+    font-weight: 600;
     text-align: right;
+    font-size: 15px;
 }
 
 /* --- Phase 5 Proposal Styles --- */
@@ -269,13 +341,15 @@ body {
 .proposal-title {
     font-size: 18px;
     color: var(--dark-color);
-    margin-bottom: 15px;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
+    font-weight: 600;
 }
 .proposal-icon {
-    font-size: 20px;
-    margin-right: 10px;
+    font-size: 22px;
+    margin-right: 12px;
+    color: var(--primary-color);
 }
 .proposal-grid {
     display: grid;
@@ -283,78 +357,117 @@ body {
     gap: 15px;
 }
 .proposal-card {
-    background-color: #f8f8f8;
-    border: 2px solid #eee;
-    padding: 15px;
-    border-radius: 12px;
+    background-color: #f9fafb;
+    border: 1px solid var(--border-color); /* 枠線を少し細く */
+    padding: 18px; /* パディング調整 */
+    border-radius: 16px; /* 角丸調整 */
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    text-align: left; /* テキスト左寄せ */
 }
 .proposal-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+    border-color: #d1d5db; /* ホバー時の枠線 */
 }
 .proposal-card.selected {
     border-color: var(--primary-color);
-    background-color: #e6fffa;
+    background-color: #f0fdfa; /* 選択時の背景色 */
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2); /* 選択時のリング */
+    transform: none; /* 選択時は浮き上がらない */
 }
 .proposal-card strong {
     display: block;
     color: var(--dark-color);
     margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 15px;
 }
 .proposal-card p {
     font-size: 14px;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.6; /* 行間調整 */
+    color: var(--text-color-light);
 }
+
 .top-stylist-comment {
-    background-color: #e6fffa;
+    background-color: #f0fdfa; /* 背景色調整 */
     border-left: 4px solid var(--primary-color);
-    padding: 15px;
-    border-radius: 8px;
-    margin: 10px 0;
+    padding: 18px; /* パディング調整 */
+    border-radius: 12px; /* 角丸調整 */
+    margin: 20px 0 10px 0; /* マージン調整 */
 }
 .top-stylist-comment p {
     margin: 0;
     font-size: 15px;
-    line-height: 1.6;
+    line-height: 1.7; /* 行間調整 */
+    color: var(--text-color);
 }
 
 /* --- Button Styles --- */
-.btn-primary, .btn-dark {
-    display: block;
-    width: 100%;
-    max-width: 300px;
+/* プライマリボタン (例: 診断を始める) */
+.btn-primary {
+    display: inline-block; /* blockから変更 */
+    width: auto; /* 自動幅 */
+    min-width: 200px; /* 最小幅 */
     margin: 0 auto;
     color: white;
-    font-size: 18px;
-    font-weight: bold;
-    padding: 15px 20px;
+    font-size: 17px; /* 文字サイズ調整 */
+    font-weight: 600;
+    padding: 14px 35px; /* パディング調整 */
     border: none;
     border-radius: 30px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    background: linear-gradient(to right, #2dd4bf, #34d399); /* グラデーション */
+    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3); /* 影調整 */
+    transition: all 0.2s ease;
 }
 
-.btn-primary {
-    background-color: var(--primary-color);
-    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02); /* 少し浮き上がる */
+    box-shadow: 0 6px 20px rgba(45, 212, 191, 0.4);
+}
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0px) scale(1);
+    box-shadow: 0 3px 10px rgba(45, 212, 191, 0.3);
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(45, 212, 191, 0.5);
-}
-
+/* ダークボタン (例: 次へ進む系) */
 .btn-dark {
-    margin-top: 30px;
+    display: block; /* 全幅ボタンはblockのまま */
+    width: 100%;
+    max-width: none; /* 最大幅解除 */
+    margin: 30px auto 0 auto; /* 上マージンのみ */
+    color: white;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 12px; /* 角丸調整 */
+    cursor: pointer;
     background-color: var(--dark-color);
-    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2); /* 影調整 */
+    transition: all 0.2s ease;
 }
 
-.btn-dark:hover {
+.btn-dark:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(30, 58, 95, 0.4);
+    background-color: #1e293b; /* ホバー色 */
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
+}
+.btn-dark:active:not(:disabled) {
+    transform: translateY(0px);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.2);
+}
+
+/* --- Phase 6 Result --- */
+#generated-image {
+    display: block; /* 中央寄せのため */
+    max-width: 100%;
+    height: auto;
+    border-radius: 16px; /* 角丸調整 */
+    margin: 0 auto 25px auto; /* マージン調整 */
+    border: 1px solid var(--border-color); /* 枠線追加 */
+    background-color: #f3f4f6; /* 読み込み中用背景 */
 }
 
