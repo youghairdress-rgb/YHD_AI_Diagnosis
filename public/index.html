@@ -13,6 +13,7 @@
     <script src="/__/firebase/12.4.0/firebase-storage-compat.js"></script>
     <script src="/__/firebase/12.4.0/firebase-remote-config-compat.js"></script>
     <!-- Firebase Init Script - Provided by Hosting -->
+    <!-- This script initializes firebase app instance -->
     <script src="/__/firebase/init.js"></script>
 
     <!-- LIFF SDK -->
@@ -28,7 +29,7 @@
             const bodyElement = document.body || document.createElement('body'); // Ensure body exists
             // Escape the error message before inserting into HTML
             const safeErrorMessage = escapeHtmlFallback(errorMessage);
-            bodyElement.innerHTML = `<div style="padding: 20px; text-align: center; color: red; background-color: #fff0f0; border: 1px solid red; border-radius: 8px; max-width: 600px; margin: 20px auto;"><h2>アプリケーションエラー</h2><p>${safeErrorMessage}</p><p>時間をおいて再度お試しください。</p></div>`;
+            bodyElement.innerHTML = `<div style="padding: 20px; text-align: center; color: red; background-color: #fff0f0; border: 1px solid red; border-radius: 8px; max-width: 600px; margin: 20px auto;"><h2>アプリケーションエラー</h2><p>${safeErrorMessage}</p><p>時間をおいて再度お試しください。(LIFF SDKの読み込みエラーの場合、LINE Developers Consoleの設定を確認してください)</p></div>`;
             if (!document.body) document.documentElement.appendChild(bodyElement);
             bodyElement.style.cssText = `display: flex; justify-content: center; align-items: flex-start; padding-top: 50px; min-height: 100vh;`;
         }
@@ -41,7 +42,7 @@
 
 </head>
 <body style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
-    <!-- ローディング画面 -->
+    <!-- ローディング画面 --><!-- ローディング画面 -->
     <div id="loading-screen" class="loading-container" style="display: block;">
         <div class="spinner"></div>
         <p>アプリを準備しています...</p>
@@ -131,19 +132,16 @@
 
     <!-- Initialization Trigger -->
     <script>
-        function attemptInitialization() {
-            // Check if all necessary components are ready globally
-            if (typeof firebase !== 'undefined' &&
-                typeof firebase.auth === 'function' && // Compat SDK provides functions here
-                typeof firebase.storage === 'function' &&
-                typeof firebase.remoteConfig === 'function' &&
+        function checkFirebaseAndInit() {
+            // Check if firebase app instance is initialized by /__/firebase/init.js
+            // Also check if other necessary components are ready globally
+            if (typeof firebase !== 'undefined' && typeof firebase.app === 'function' && firebase.app() && // Check if firebase app is initialized
                 typeof liff !== 'undefined' &&
-                typeof main === 'function' && // main() defined in main.js
-                typeof changePhase === 'function' // changePhase() defined in ui.js
-               )
+                typeof main === 'function' &&
+                typeof changePhase === 'function')
             {
-                console.log("All components ready. Setting up Auth listener...");
-                // Use onAuthStateChanged to ensure auth is ready (including anonymous sign-in)
+                console.log("Firebase App and other components ready. Setting up Auth listener...");
+                // Now it's safer to access firebase.auth()
                 firebase.auth().onAuthStateChanged(user => {
                     if (user) {
                         console.log("Firebase Auth ready with user:", user.uid);
@@ -160,6 +158,7 @@
                              console.log("No Firebase user, attempting anonymous sign-in...");
                              firebase.auth().signInAnonymously().catch((error) => {
                                  console.error("Anonymous sign-in failed:", error);
+                                 // Use the global error display function
                                  initializeAppFailureFallback("Firebase匿名認証に失敗しました: " + error.message);
                              }).finally(() => {
                                 window.signingInAnonymously = false;
@@ -168,18 +167,17 @@
                     }
                 });
             } else {
-                console.warn("Initialization components not ready yet, will retry...");
-                 // If firebase itself is missing after page load, it's a critical error
+                console.warn("Firebase App or other components not ready yet, will retry...");
+                 // Critical errors (should not happen if Hosting is configured correctly)
                  if (document.readyState === 'complete' && typeof firebase === 'undefined') {
                      initializeAppFailureFallback("Firebase SDK の読み込みに失敗しました。Hosting設定を確認してください。");
                      return; // Stop retrying
                  }
-                  // If LIFF SDK is missing after page load, it's a critical error
                   if (document.readyState === 'complete' && typeof liff === 'undefined') {
                      initializeAppFailureFallback("LIFF SDK の読み込みに失敗しました。ネットワーク接続またはLIFF設定を確認してください。");
                      return; // Stop retrying
                  }
-                setTimeout(attemptInitialization, 150); // Retry slightly longer
+                setTimeout(checkFirebaseAndInit, 150); // Retry
             }
         }
 
@@ -187,9 +185,9 @@
         document.addEventListener('DOMContentLoaded', () => {
              console.log("DOMContentLoaded fired. Starting initialization check...");
              window.mainCalled = false; // Flag to ensure main() is called only once
-             attemptInitialization();
+             window.signingInAnonymously = false; // Flag for anonymous sign-in attempt
+             checkFirebaseAndInit(); // Start the check loop
         });
     </script>
 </body>
 </html>
-

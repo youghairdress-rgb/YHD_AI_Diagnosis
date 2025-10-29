@@ -9,29 +9,30 @@
     "rewrites": [
       {
         "source": "/requestDiagnosis",
-        "function": "requestDiagnosis"
+        // ★★★ オブジェクト形式で functionId と region を指定 ★★★
+        "function": {
+          "functionId": "requestDiagnosis",
+          "region": "us-central1" // Cloud Functionsをデプロイしたリージョン
+        }
+      },
+      {
+        "source": "/helloWorld",
+        // ★★★ オブジェクト形式で functionId と region を指定 ★★★
+        "function": {
+          "functionId": "helloWorld",
+          "region": "us-central1" // Cloud Functionsをデプロイしたリージョン
+        }
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
-    ],
-    "headers": [ {
-      "source": "**/*.@(js|css)",
-      "headers": [ {
-        "key": "Cache-Control",
-        "value": "max-age=31536000"
-       } ]
-     }, {
-       "source": "**/*.@(jpg|jpeg|gif|png|svg|webp)",
-       "headers": [ {
-         "key": "Cache-Control",
-         "value": "max-age=604800"
-       } ]
-     } ]
+    ]
+    // "headers": [ ... ]
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs20" // Node.js 20 LTSを指定
+    "runtime": "nodejs20"
   }
 }
+
