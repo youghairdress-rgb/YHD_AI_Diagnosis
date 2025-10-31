@@ -69,5 +69,4 @@ node_modules/
 .dataconnect
 
     # Environment variables for Firebase Functions
-    functions/.env*
-    !.env.example
+    functions/.env*!.env.example
