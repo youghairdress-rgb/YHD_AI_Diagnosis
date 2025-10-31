@@ -22,4 +22,4 @@ function changePhase(phaseId) {
         if(phase1) phase1.style.display = 'block';
     }
 }
-
+// ★ 修正点: ファイル末尾にあった余分な閉じ括弧 '}' を削除しました

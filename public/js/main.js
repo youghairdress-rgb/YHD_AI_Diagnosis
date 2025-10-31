@@ -388,6 +388,7 @@ function displayProposalResult(proposal) {
 }
 
 
+// --- ★★★ 修正済みの関数 ★★★ ---
 // --- Image Generation Request Handler ---
 async function handleImageGenerationRequest() {
     console.log("[handleImageGenerationRequest] Starting image generation process.");
@@ -410,6 +411,21 @@ async function handleImageGenerationRequest() {
         return;
     }
 
+    // ★★★ 変更点 ★★★
+    // 選択された提案の詳細情報を取得
+    const selectedHairstyleKey = AppState.selectedProposal.hairstyle;
+    const selectedHaircolorKey = AppState.selectedProposal.haircolor;
+    
+    const hairstyle = AppState.aiProposal?.hairstyles?.[selectedHairstyleKey];
+    const haircolor = AppState.aiProposal?.haircolors?.[selectedHaircolorKey];
+
+    if (!hairstyle || !haircolor) {
+         console.error("[handleImageGenerationRequest] Failed to retrieve proposal details from AppState.");
+         alert("選択された提案の詳細の取得に失敗しました。");
+         return;
+    }
+    // ★★★ 変更ここまで ★★★
+
     try {
         if (generateBtn) generateBtn.disabled = true; // Disable button during process
         if (generatedImageElement) generatedImageElement.src = loadingPlaceholder; // Show loading placeholder
@@ -417,16 +433,21 @@ async function handleImageGenerationRequest() {
 
         console.log("[handleImageGenerationRequest] Sending request with:", {
             originalImageUrl: originalImageUrl,
-            hairstyle: AppState.selectedProposal.hairstyle,
-            haircolor: AppState.selectedProposal.haircolor
+            hairstyleName: hairstyle.name,
+            haircolorName: haircolor.name,
         });
 
+        // ★★★ 変更点 ★★★
         // Prepare data for the new Cloud Function
         const requestData = {
             originalImageUrl: originalImageUrl,
-            hairstyle: AppState.selectedProposal.hairstyle,
-            haircolor: AppState.selectedProposal.haircolor
+            firebaseUid: AppState.userProfile.firebaseUid, // ユーザー識別のためにUIDを送信
+            hairstyleName: hairstyle.name,
+            hairstyleDesc: hairstyle.description,
+            haircolorName: haircolor.name,
+            haircolorDesc: haircolor.description,
         };
+        // ★★★ 変更ここまで ★★★
 
         // Call the new image generation Cloud Function
         const responseData = await requestImageGeneration(requestData);
@@ -457,6 +478,7 @@ async function handleImageGenerationRequest() {
         }
     }
 }
+// --- ★★★ 修正ここまで ★★★
 
 
 // --- Utility Functions ---
