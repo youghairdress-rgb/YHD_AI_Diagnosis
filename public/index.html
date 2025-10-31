@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
     <title>YHD AIパーソナル診断</title>
-    <link rel="stylesheet" href="css/style.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- Firebase SDK (Compat) - Provided by Hosting -->
     <script src="/__/firebase/12.4.0/firebase-app-compat.js"></script>
@@ -43,8 +43,6 @@
              if (typeof unsafe !== 'string') return '';
              return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\//g, "&#x2F;");
         }
-        // Make escapeHtml globally available if needed elsewhere
-        window.escapeHtml = escapeHtmlFallback;
     </script>
 
 </head>
@@ -67,7 +65,7 @@
             <button id="start-btn" class="btn-primary">診断を始める</button>
         </div>
     </div>
-
+    
     <!-- Phase 2: Profile Input -->
     <div id="phase2" class="phase-container" style="display: none;">
         <div class="card">
@@ -88,144 +86,107 @@
         </div>
     </div>
 
-    <!-- Phase 3: Material Upload -->
+     <!-- Phase 3: Upload -->
      <div id="phase3" class="phase-container" style="display: none;">
          <div class="card">
              <h2 class="form-title">写真・動画撮影</h2>
              <p class="description" style="margin-bottom: 20px;">AI診断のため、指定されたアングルから撮影してください。</p>
              <div class="upload-list">
-                 <!-- 写真: 正面 -->
                  <div id="item-front-photo" class="upload-item">
                      <input type="file" class="file-input" accept="image/jpeg,image/png,image/heic,image/heif" capture="user" hidden>
-                     <div class="upload-icon">📷</div>
-                     <div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと</span></div>
-                     <button class="btn-outline">撮影</button>
+                     <div class="upload-icon">📷</div><div class="upload-text"><strong>写真：正面</strong><span>顔がはっきりと</span></div><button class="btn-outline">撮影</button>
                  </div>
-                 <!-- 写真: サイド -->
                  <div id="item-side-photo" class="upload-item">
                      <input type="file" class="file-input" accept="image/jpeg,image/png,image/heic,image/heif" capture="environment" hidden>
-                     <div class="upload-icon">📷</div>
-                     <div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さ</span></div>
-                     <button class="btn-outline">撮影</button>
+                     <div class="upload-icon">📷</div><div class="upload-text"><strong>写真：サイド</strong><span>横顔と髪の長さ</span></div><button class="btn-outline">撮影</button>
                  </div>
-                 <!-- 写真: バック -->
                  <div id="item-back-photo" class="upload-item">
                      <input type="file" class="file-input" accept="image/jpeg,image/png,image/heic,image/heif" capture="environment" hidden>
-                     <div class="upload-icon">📷</div>
-                     <div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型</span></div>
-                     <button class="btn-outline">撮影</button>
+                     <div class="upload-icon">📷</div><div class="upload-text"><strong>写真：バック</strong><span>後ろ全体の髪型</span></div><button class="btn-outline">撮影</button>
                  </div>
-                 <!-- 動画: 正面 -->
                  <div id="item-front-video" class="upload-item">
                      <input type="file" class="file-input" accept="video/mp4,video/quicktime,video/mov" capture="user" hidden>
-                     <div class="upload-icon">🎬</div>
-                     <div class="upload-text"><strong>動画：正面 (3秒)</strong><span>左右に顔を動かす</span></div>
-                     <button class="btn-outline">撮影</button>
+                     <div class="upload-icon">🎬</div><div class="upload-text"><strong>動画：正面 (3秒)</strong><span>左右に顔を動かす</span></div><button class="btn-outline">撮影</button>
                  </div>
-                 <!-- 動画: バック -->
                  <div id="item-back-video" class="upload-item">
                      <input type="file" class="file-input" accept="video/mp4,video/quicktime,video/mov" capture="environment" hidden>
-                     <div class="upload-icon">🎬</div>
-                     <div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動き</span></div>
-                     <button class="btn-outline">撮影</button>
+                     <div class="upload-icon">🎬</div><div class="upload-text"><strong>動画：バック (3秒)</strong><span>髪全体の動き</span></div><button class="btn-outline">撮影</button>
                  </div>
              </div>
              <button id="request-diagnosis-btn" class="btn-dark btn-disabled" disabled>AI診断をリクエスト</button>
          </div>
      </div>
-
-     <!-- Phase 3.5: Loading/Processing -->
+     
+     <!-- Phase 3.5: Loading -->
      <div id="phase3.5" class="phase-container" style="display: none;">
          <div class="card">
              <div class="spinner"></div>
              <h2 class="form-title" style="margin-top: 25px; margin-bottom: 10px;">AIが診断中です</h2>
-             <!-- Status text updated by JS -->
-             <p id="diagnosis-status-text" class="description">しばらくお待ちください...</p>
+             <p class="description" id="diagnosis-status-text">しばらくお待ちください...</p>
          </div>
      </div>
-
-     <!-- Phase 4: AI Diagnosis Result -->
-     <div id="phase4" class="phase-container" style="display: none;">
+     
+     <!-- Phase 4: Diagnosis Result -->
+    <div id="phase4" class="phase-container" style="display: none;">
          <div class="card">
              <h2 class="form-title">AI診断結果</h2>
-             <!-- Face Results -->
+             
+             <!-- ★★★ この部分が正しく存在するか確認 ★★★ -->
              <div class="result-section">
                  <h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3>
-                 <div id="face-results" class="result-grid">
-                     <!-- Populated by JS -->
-                 </div>
+                 <div id="face-results" class="result-grid"></div> <!-- ID: face-results -->
              </div>
-             <!-- Skeleton Results -->
              <div class="result-section">
                  <h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3>
-                 <div id="skeleton-results" class="result-grid">
-                     <!-- Populated by JS -->
-                 </div>
+                 <div id="skeleton-results" class="result-grid"></div> <!-- ID: skeleton-results -->
              </div>
-             <!-- Personal Color Results -->
              <div class="result-section">
                  <h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー</h3>
-                 <div id="personal-color-results" class="result-grid">
-                     <!-- Populated by JS -->
-                 </div>
+                 <div id="personal-color-results" class="result-grid"></div> <!-- ID: personal-color-results -->
              </div>
-             <!-- TODO: Add Hair Diagnosis Results Section if needed -->
-             <!-- <div class="result-section">
-                 <h3 class="result-title"><span class="result-icon">ፀ</span> 毛髪診断</h3>
-                 <div id="hair-results" class="result-grid"> -->
-                     <!-- Populated by JS -->
-                 <!-- </div>
-             </div> -->
+             
              <button id="next-to-proposal-btn" class="btn-dark">AI提案を見る</button>
          </div>
-     </div>
-
-     <!-- Phase 5: AI Personal Proposal -->
-     <div id="phase5" class="phase-container" style="display: none;">
+    </div>
+     
+     <!-- Phase 5: Proposal -->
+    <div id="phase5" class="phase-container" style="display: none;">
          <div class="card">
              <h2 class="form-title">AIパーソナル提案</h2>
-             <!-- Hairstyle Proposal -->
+             
+             <!-- ★★★ この部分が正しく存在するか確認 ★★★ -->
              <div class="proposal-section">
-                 <h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル提案</h3>
-                 <div id="hairstyle-proposal" class="proposal-grid">
-                     <!-- Populated by JS -->
-                 </div>
+                 <h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル</h3>
+                 <div id="hairstyle-proposal" class="proposal-grid"></div> <!-- ID: hairstyle-proposal -->
              </div>
-             <!-- Haircolor Proposal -->
              <div class="proposal-section">
-                 <h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー提案</h3>
-                 <div id="haircolor-proposal" class="proposal-grid">
-                     <!-- Populated by JS -->
-                 </div>
+                 <h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー</h3>
+                 <div id="haircolor-proposal" class="proposal-grid"></div> <!-- ID: haircolor-proposal -->
              </div>
-             <!-- AI Top Stylist Comment -->
              <div class="proposal-section">
                  <h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3>
                  <div class="top-stylist-comment">
-                     <p id="top-stylist-comment-text"><!-- Populated by JS --></p>
+                     <p id="top-stylist-comment-text"></p> <!-- ID: top-stylist-comment-text -->
                  </div>
              </div>
-             <!-- TODO: Add Makeup & Fashion Proposal Sections if needed -->
+             
              <button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成</button>
          </div>
-     </div>
-
-    <!-- Phase 6: Composite Image Generation -->
+    </div>
+    
+    <!-- Phase 6: Generated Image -->
     <div id="phase6" class="phase-container" style="display: none;">
          <div class="card">
              <h2 class="form-title">ヘアスタイル合成結果</h2>
-             <!-- Placeholder or Loading for image -->
-             <img id="generated-image" src="https://placehold.co/300x300/e2e8f0/cbd5e1?text=Loading..." alt="合成されたヘアスタイル">
+             <img id="generated-image" src="https://placehold.co/300x300/e2e8f0/cbd5e1?text=Awaiting..." alt="合成されたヘアスタイル">
              <p class="description">AIが生成した合成画像です。</p>
-             <!-- TODO: Add fine-tuning UI here -->
-             <!-- TODO: Add Save/Share buttons here -->
-             <button id="back-to-proposal-btn" class="btn-outline" style="margin-top: 15px;">提案に戻る</button> <!-- Added margin -->
+             <button id="back-to-proposal-btn" class="btn-outline">提案に戻る</button>
          </div>
     </div>
 
     <!-- App Scripts (Load at the end, NO type="module") -->
     <script src="js/ui.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/main.js"></script> <!-- public/js/main.js (現在エディタにあるもの) -->
 
     <!-- Initialization Trigger -->
     <script>
