@@ -23,6 +23,9 @@
 
     <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" charset="utf-8"></script>
+    
+    <!-- ★ 修正: xintegrity -> integrity -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tYHuRgEXEBOBS6qqSL9KxXfGPRCRHpTAfUuiQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Global Helper Functions -->
     <script>
@@ -131,21 +134,21 @@
          <div class="card">
              <h2 class="form-title">AI診断結果</h2>
              
-             <!-- ★★★ この部分が正しく存在するか確認 ★★★ -->
              <div class="result-section">
-                 <h3 class="result-title"><span class="result-icon">😊</span> 顔診断</h3>
+                 <h3 class="result-title"><img src="images/顔診断.png" alt="" class="result-icon"> お顔の特徴</h3>
                  <div id="face-results" class="result-grid"></div> <!-- ID: face-results -->
              </div>
              <div class="result-section">
-                 <h3 class="result-title"><span class="result-icon">🧍</span> 骨格診断</h3>
+                 <h3 class="result-title"><img src="images/骨格診断.png" alt="" class="result-icon"> 骨格・ボディ</h3>
                  <div id="skeleton-results" class="result-grid"></div> <!-- ID: skeleton-results -->
              </div>
              <div class="result-section">
-                 <h3 class="result-title"><span class="result-icon">🎨</span> パーソナルカラー</h3>
+                 <h3 class="result-title"><img src="images/パーソナルカラー.png" alt="" class="result-icon"> パーソナルカラー</h3>
                  <div id="personal-color-results" class="result-grid"></div> <!-- ID: personal-color-results -->
              </div>
              
              <button id="next-to-proposal-btn" class="btn-dark">AI提案を見る</button>
+             <button id="save-phase4-btn" class="btn-secondary no-print">診断結果を画像で保存</button>
          </div>
     </div>
      
@@ -154,23 +157,39 @@
          <div class="card">
              <h2 class="form-title">AIパーソナル提案</h2>
              
-             <!-- ★★★ この部分が正しく存在するか確認 ★★★ -->
              <div class="proposal-section">
-                 <h3 class="proposal-title"><span class="proposal-icon">✂️</span> ヘアスタイル</h3>
+                 <h3 class="proposal-title"><img src="images/ヘアスタイル.png" alt="" class="proposal-icon"> 似合うヘアスタイル</h3>
                  <div id="hairstyle-proposal" class="proposal-grid"></div> <!-- ID: hairstyle-proposal -->
              </div>
              <div class="proposal-section">
-                 <h3 class="proposal-title"><span class="proposal-icon">🎨</span> ヘアカラー</h3>
+                 <h3 class="proposal-title"><img src="images/ヘアカラー.png" alt="" class="proposal-icon"> 似合うヘアカラー</h3>
                  <div id="haircolor-proposal" class="proposal-grid"></div> <!-- ID: haircolor-proposal -->
              </div>
+
              <div class="proposal-section">
-                 <h3 class="proposal-title"><span class="proposal-icon">✨</span> トップスタイリストAIより</h3>
+                 <h3 class="proposal-title"><img src="images/カラーパターン.png" alt="" class="proposal-icon"> 相性ベストカラー</h3>
+                 <div id="best-colors-proposal" class="best-colors-grid">
+                     <!-- JSでここに色見本が挿入される -->
+                 </div>
+             </div>
+
+             <div class="proposal-section">
+                 <h3 class="proposal-title"><img src="images/メイク.png" alt="" class="proposal-icon"> 似合うメイク</h3>
+                 <div id="makeup-proposal" class="makeup-grid">
+                     <!-- JSでここにメイク情報が挿入される -->
+                 </div>
+             </div>
+             
+             <div class="proposal-section">
+                 <h3 class="proposal-title"><img src="images/AI美容師.png" alt="" class="proposal-icon"> AIからのアドバイス</h3>
                  <div class="top-stylist-comment">
                      <p id="top-stylist-comment-text"></p> <!-- ID: top-stylist-comment-text -->
                  </div>
              </div>
              
              <button id="next-to-generate-btn" class="btn-dark btn-disabled" disabled>合成画像を作成</button>
+             <button id="save-phase5-btn" class="btn-secondary no-print">提案内容を画像で保存</button>
+             <button id="back-to-diagnosis-btn" class="btn-secondary btn-secondary-white no-print">診断結果に戻る</button>
          </div>
     </div>
     
@@ -178,8 +197,33 @@
     <div id="phase6" class="phase-container" style="display: none;">
          <div class="card">
              <h2 class="form-title">ヘアスタイル合成結果</h2>
-             <img id="generated-image" src="https://placehold.co/300x300/e2e8f0/cbd5e1?text=Awaiting..." alt="合成されたヘアスタイル">
+             
+             <!-- スピナーを画像と重ねるためのコンテナ -->
+             <div class="generated-image-container">
+                 <img id="generated-image" src="https://placehold.co/300x300/e2e8f0/cbd5e1?text=Awaiting..." alt="合成されたヘアスタイル">
+                 <!-- 微調整ローディング用スピナー -->
+                 <div id="refinement-spinner" class="spinner" style="display: none;"></div>
+             </div>
+             
              <p class="description">AIが生成した合成画像です。</p>
+
+             <!-- 微調整UI -->
+             <div class="refinement-section">
+                 <h3 class="refinement-title"><img src="images/AI美容師.png" alt="" class="proposal-icon"> 画像の微調整</h3>
+                <p class="description" style="margin-bottom: 15px; font-size: 14px; text-align: left;">「もう少し明るく」「前髪を短く」など、要望を伝えて画像を調整できます。</p>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <input type="text" id="refinement-prompt-input" class="form-control" placeholder="例：もう少し髪を明るくして">
+                </div>
+                <button id="refine-image-btn" class="btn-dark">変更を反映する</button>
+             </div>
+             
+             <!-- ★★★ 修正: 2つのボタンに分離 ★★★ -->
+             <!-- 1. お気に入り保存ボタン (DB保存) -->
+             <button id="save-generated-image-to-db-btn" class="btn-primary no-print">この合成画像を保存する</button>
+             <!-- 2. 画面共有ボタン (html2canvas) -->
+             <button id="share-phase6-btn" class="btn-secondary no-print">結果を保存してLINEで共有</button>
+             
+             <!-- ★ 修正: 戻るボタンのインラインスタイルを削除 -->
              <button id="back-to-proposal-btn" class="btn-outline">提案に戻る</button>
          </div>
     </div>
@@ -249,4 +293,3 @@
     </script>
 </body>
 </html>
-

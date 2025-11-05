@@ -136,9 +136,30 @@ const AI_RESPONSE_SCHEMA = {
           },
           "required": ["color1", "color2"],
         },
+        "bestColors": {
+          "type": "OBJECT",
+          "description": "パーソナルカラーに基づいた相性の良いカラー4種。キーは 'c1' から 'c4'。",
+          "properties": {
+            "c1": {"type": "OBJECT", "properties": {"name": {"type": "STRING"}, "hex": {"type": "STRING", "description": "例: #FFB6C1"}}, "required": ["name", "hex"]},
+            "c2": {"type": "OBJECT", "properties": {"name": {"type": "STRING"}, "hex": {"type": "STRING", "description": "例: #FFDAB9"}}, "required": ["name", "hex"]},
+            "c3": {"type": "OBJECT", "properties": {"name": {"type": "STRING"}, "hex": {"type": "STRING", "description": "例: #E6E6FA"}}, "required": ["name", "hex"]},
+            "c4": {"type": "OBJECT", "properties": {"name": {"type": "STRING"}, "hex": {"type": "STRING", "description": "例: #98FB98"}}, "required": ["name", "hex"]},
+          },
+          "required": ["c1", "c2", "c3", "c4"],
+        },
+        "makeup": {
+          "type": "OBJECT",
+          "description": "パーソナルカラーに基づいた似合うメイク提案",
+          "properties": {
+            "eyeshadow": {"type": "STRING", "description": "アイシャドウの色 (例: ゴールド系ブラウン)"},
+            "cheek": {"type": "STRING", "description": "チークの色 (例: ピーチピンク)"},
+            "lip": {"type": "STRING", "description": "リップの色 (例: コーラルレッド)"},
+          },
+          "required": ["eyeshadow", "cheek", "lip"],
+        },
         "comment": {"type": "STRING", "description": "AIトップヘアスタイリストによる総評 (200-300文字程度)"},
       },
-      "required": ["hairstyles", "haircolors", "comment"],
+      "required": ["hairstyles", "haircolors", "bestColors", "makeup", "comment"],
     },
   },
   "required": ["result", "proposal"],
@@ -205,7 +226,14 @@ exports.requestDiagnosis = onRequest(
 顧客から提供された写真（正面）と性別（${gender}）に基づき、以下のタスクを実行してください。
 
 1.  **診断 (result)**: 写真から顧客の顔、骨格、パーソナルカラーの特徴を詳細に分析し、指定されたJSONスキーマの'result'フィールドに入力してください。
-2.  **提案 (proposal)**: 診断結果に基づき、顧客に似合うヘアスタイルとヘアカラーをそれぞれ2つ提案し、'proposal'フィールドに入力してください。提案は具体的で、なぜそれが似合うのかの短い説明（50-100文字）を含めてください。
+2.  **提案 (proposal)**: 診断結果に基づき、以下の提案を'proposal'フィールドに入力してください。
+    * **hairstyles**: 顧客に似合うヘアスタイルを2つ提案。具体的で、なぜそれが似合うのかの短い説明（50-100文字）を含めてください。
+    * **haircolors**: 顧客に似合うヘアカラーを2つ提案。説明（50-100文字）を含めてください。
+    * **bestColors**: 診断したパーソナルカラー（特にシーズン）に基づき、顧客の魅力を引き出す「相性ベストカラー」を4色提案してください。色名（例: コーラルピンク）と、色見本表示用のHEXコード（例: #FF7F50）を必ずセットで生成してください。
+    * **makeup**: 診断したパーソナルカラーに基づき、「似合うメイク」としてアイシャドウ、チーク、リップの色をそれぞれ提案してください。
+    * **重要:** ヘアスタイルの提案は、以下の参考サイトにあるような、日本の現代のトレンドスタイルを強く意識してください。
+    * 参考サイト1: https://beauty.hotpepper.jp/catalog/
+    * 参考サイト2: https://www.ozmall.co.jp/hairsalon/catalog/
 3.  **総評 (comment)**: 診断結果と提案を基に、顧客の魅力的な特徴を称え、全体的なアドバイスを総評（200-300文字）として'comment'フィールドに入力してください。
 
 回答は必ず指定されたJSONスキーマに従い、JSONオブジェクトのみを返してください。前置きやマークダウン（'''json ... '''）は一切含めないでください。
@@ -238,7 +266,6 @@ exports.requestDiagnosis = onRequest(
 
       // 5. API呼び出し（リトライ処理付き）
       try {
-        // ★★★ 修正点: `callGeminiApiWithRetry` は応答オブジェクト全体を返す ★★★
         const aiResponse = await callGeminiApiWithRetry(apiUrl, payload, 3);
         if (!aiResponse) {
            throw new Error("AI response was null or undefined after retries.");
@@ -246,7 +273,6 @@ exports.requestDiagnosis = onRequest(
 
         logger.info("[requestDiagnosis] Gemini API request successful.");
 
-        // ★★★ 修正点: aiResponseオブジェクトから「text」部分を抽出する ★★★
         const responseText = aiResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!responseText || typeof responseText !== "string") {
@@ -254,19 +280,18 @@ exports.requestDiagnosis = onRequest(
           throw new Error("AIの応答にJSONテキストが含まれていません。");
         }
 
-        // ★★★ 修正点: 抽出した「responseText」(文字列)に対してパース処理を行う ★★★
-        const jsonMatch = responseText.match(/{[\s\S]*}/);
-        if (!jsonMatch || jsonMatch.length === 0) {
-          logger.error("[requestDiagnosis] AI response text did not contain valid JSON.", {responseText});
-          throw new Error("AIが不正な形式を返しました。応答にJSONオブジェクトが含まれていません。");
+        let parsedJson;
+        try {
+          parsedJson = JSON.parse(responseText);
+        } catch (parseError) {
+          logger.error("[requestDiagnosis] Failed to parse responseText directly.", {responseText, parseError});
+          throw new Error(`AIが不正なJSON形式を返しました: ${parseError.message}`);
         }
 
-        const parsedJson = JSON.parse(jsonMatch[0]); // マッチした文字列をパース
-
         // パースしたJSONをチェック
-        if (!parsedJson.result || !parsedJson.proposal) {
-           logger.error("[requestDiagnosis] Parsed JSON missing required keys (result/proposal).", {parsed: parsedJson});
-           throw new Error("AIの応答に必要なキー（result, proposal）が欠けています。");
+        if (!parsedJson.result || !parsedJson.proposal || !parsedJson.proposal.bestColors || !parsedJson.proposal.makeup) {
+           logger.error("[requestDiagnosis] Parsed JSON missing required keys (result/proposal/bestColors/makeup).", {parsed: parsedJson});
+           throw new Error("AIの応答に必要なキー（result, proposal, bestColors, makeup）が欠けています。");
         }
 
         res.status(200).json(parsedJson); // パースしたJSONを返す
@@ -346,7 +371,7 @@ exports.generateHairstyleImage = onRequest(
 （指示書: PDF 2-5ページ）
 **目的:** 元画像の顔の特徴（顔の輪郭、目、鼻、口、肌の質感）を一切変更せず、指定されたヘアスタイルを極めて自然に合成（インペインティング）する。
 **元画像:** [添付された元画像]
-**マスク:** [添付されたマスク画像]
+**マスク:** [マスクは添付しない。元画像から顔領域を自動検出し、その顔を**一切変更せず**、髪型だけをインペインティングすること。]
 **指示:**
 1.  **品質:** masterpiece, best quality, photorealistic hair, ultra realistic, lifelike hair texture, individual hair strands visible
 2.  **スタイル:** ${hairstyleName} (${hairstyleDesc})
@@ -370,10 +395,125 @@ unnatural color, flat, dull, lifeless hair, helmet-like, wig, hat, hair accessor
                   data: imageBase64,
                 },
               },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseModalities: ["IMAGE"],
+          // temperature: 0.7, // 必要に応じて調整
+        },
+      };
+
+      // 5. API呼び出し（リトライ処理付き）
+      try {
+        const aiResponse = await callGeminiApiWithRetry(apiUrl, payload, 3);
+        // ★ 修正: レスポンスから inlineData を見つける
+        const imagePart = aiResponse?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+        const generatedBase64 = imagePart?.inlineData?.data;
+        const generatedMimeType = imagePart?.inlineData?.mimeType || "image/png"; // デフォルト
+
+        if (!generatedBase64) {
+          logger.error("[generateHairstyleImage] No image data found in Gemini response.", {response: aiResponse});
+          throw new Error("AIからの応答に画像データが含まれていませんでした。");
+        }
+
+        logger.info("[generateHairstyleImage] Gemini API request successful. Image generated.");
+
+        // ★★★ 削除: Firebase Storageへのアップロード処理 (ここから) ★★★
+        // const bucket = storage.bucket(); ...
+        // const [signedUrl] = await file.getSignedUrl(...);
+        // logger.info(`[generateHairstyleImage] Signed URL generated successfully.`);
+        // ★★★ 削除 (ここまで) ★★★
+
+        // ★ 修正: 成功レスポンスとしてBase64データを直接返す
+        res.status(200).json({
+          message: "Image generated successfully.",
+          imageBase64: generatedBase64,
+          mimeType: generatedMimeType,
+        });
+      } catch (apiError) {
+        logger.error("[generateHairstyleImage] Gemini API call or Storage upload failed:", apiError);
+        res.status(500).json({error: "Image Generation Error", message: `画像生成または保存に失敗しました。\n詳細: ${apiError.message}`});
+      }
+    });
+
+// ★★★ 修正: 画像微調整リクエスト関数 (v2) ★★★
+exports.refineHairstyleImage = onRequest(
+    {...corsOptions, secrets: [imageGenApiKey], timeoutSeconds: 300},
+    async (req, res) => {
+      // 1. メソッドとAPIキーのチェック
+      if (req.method !== "POST") {
+        logger.warn(`[refineHairstyleImage] Method Not Allowed: ${req.method}`);
+        res.status(405).json({error: "Method Not Allowed"});
+        return;
+      }
+
+      const apiKey = imageGenApiKey.value();
+      if (!apiKey || !storage) {
+        logger.error("[refineHairstyleImage] API Key or Storage service is missing.");
+        res.status(500).json({error: "Configuration Error", message: "API Key or Storage not configured."});
+        return;
+      }
+
+      // 2. リクエストデータの取得
+      const {
+        generatedImageUrl, // ★注意: これは "data:image/png;base64,..." のデータURL
+        firebaseUid,
+        refinementText, // ★注意: 微調整プロンプト
+      } = req.body;
+
+      if (!generatedImageUrl || !firebaseUid || !refinementText) {
+        logger.error("[refineHairstyleImage] Bad Request: Missing data.", {body: req.body});
+        res.status(400).json({error: "Bad Request", message: "Missing required data (generatedImageUrl, firebaseUid, refinementText)."});
+        return;
+      }
+
+      logger.info(`[refineHairstyleImage] Received request for user: ${firebaseUid}. Text: ${refinementText}`);
+
+      // 3. 画像データの取得 (★データURLからBase64とMIMEタイプを抽出★)
+      let imageBase64;
+      let imageMimeType;
+      try {
+        const match = generatedImageUrl.match(/^data:(image\/.+);base64,(.+)$/);
+        if (!match) {
+            throw new Error("Invalid Data URL format.");
+        }
+        imageMimeType = match[1];
+        imageBase64 = match[2];
+        logger.info(`[refineHairstyleImage] Image data extracted from Data URL. MimeType: ${imageMimeType}`);
+      } catch (fetchError) {
+        logger.error("[refineHairstyleImage] Failed to parse Data URL:", fetchError);
+        res.status(500).json({error: "Image Parse Error", message: `画像データの解析に失敗しました: ${fetchError.message}`});
+        return;
+      }
+
+      // 4. Gemini API リクエストペイロードの作成 (Image-to-Image Edit)
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+
+      // ★微調整用の新しいプロンプト★
+      const prompt = `
+**目的:** 添付されたベース画像（ヘアスタイル合成済み）に対して、ユーザーの指示に基づき「髪の毛のみ」を微調整する。
+**ベース画像:** [添付された画像]
+**ユーザーの微調整指示:** "${refinementText}"
+**厳格なルール:**
+1.  **顔と背景の保護:** 顔の輪郭、目、鼻、口、肌の質感、背景は**一切変更してはならない**。
+2.  **髪のみ編集:** ユーザーの指示（"${refinementText}"）を、**髪の毛に対してのみ**適用すること。
+3.  **品質:** photorealistic, lifelike hair texture を維持すること。
+
+**ネガティブプロンプト:**
+(face changed), (skin texture changed), (different person), (background changed), blurry, deformed, worst quality, unnatural color
+`;
+
+      const payload = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {text: prompt},
               {
-                inlineData: { // マスク画像 (顔全体をマスク)
+                inlineData: { // ★ベース画像（前回生成した画像）
                   mimeType: imageMimeType,
-                  data: imageBase64, // TODO: 本来は顔領域をマスクした画像を使う
+                  data: imageBase64,
                 },
               },
             ],
@@ -388,49 +528,33 @@ unnatural color, flat, dull, lifeless hair, helmet-like, wig, hat, hair accessor
       // 5. API呼び出し（リトライ処理付き）
       try {
         const aiResponse = await callGeminiApiWithRetry(apiUrl, payload, 3);
-        const generatedBase64 = aiResponse?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)?.inlineData?.data;
+        // ★ 修正: レスポンスから inlineData を見つける
+        const imagePart = aiResponse?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+        const generatedBase64 = imagePart?.inlineData?.data;
+        const generatedMimeType = imagePart?.inlineData?.mimeType || "image/png"; // デフォルト
 
         if (!generatedBase64) {
-          logger.error("[generateHairstyleImage] No image data found in Gemini response.", {response: aiResponse});
+          logger.error("[refineHairstyleImage] No image data found in Gemini response.", {response: aiResponse});
           throw new Error("AIからの応答に画像データが含まれていませんでした。");
         }
 
-        logger.info("[generateHairstyleImage] Gemini API request successful. Image generated.");
+        logger.info("[refineHairstyleImage] Gemini API request successful. Image refined.");
 
-        // 6. Firebase Storageへのアップロード
-        const bucket = storage.bucket(); // デフォルトバケットを取得
-        const fileName = `generated/${firebaseUid}/${Date.now()}_${hairstyleName.replace(/ /g, "_")}.png`;
-        const file = bucket.file(fileName);
-        const buffer = Buffer.from(generatedBase64, "base64");
+        // ★★★ 削除: Firebase Storageへのアップロード処理 (ここから) ★★★
+        // const bucket = storage.bucket(); ...
+        // const [signedUrl] = await file.getSignedUrl(...);
+        // logger.info(`[refineHairstyleImage] Signed URL generated successfully.`);
+        // ★★★ 削除 (ここまで) ★★★
 
-        logger.info(`[generateHairstyleImage] Uploading generated image to Storage: ${fileName}`);
-        await file.save(buffer, {
-          metadata: {
-            contentType: "image/png",
-            metadata: {
-              firebaseUid: firebaseUid,
-              hairstyle: hairstyleName,
-              haircolor: haircolorName,
-            },
-          },
-        });
-
-        // 7. 署名付きURL（1時間有効）の生成
-        const [signedUrl] = await file.getSignedUrl({
-          action: "read",
-          expires: Date.now() + 60 * 60 * 1000, // 1 hour
-        });
-
-        logger.info(`[generateHairstyleImage] Signed URL generated successfully.`);
-
-        // 8. 成功レスポンス
+        // ★ 修正: 成功レスポンスとしてBase64データを直接返す
         res.status(200).json({
-          message: "Image generated and uploaded successfully.",
-          imageUrl: signedUrl,
+          message: "Image refined successfully.",
+          imageBase64: generatedBase64,
+          mimeType: generatedMimeType,
         });
       } catch (apiError) {
-        logger.error("[generateHairstyleImage] Gemini API call or Storage upload failed:", apiError);
-        res.status(500).json({error: "Image Generation Error", message: `画像生成または保存に失敗しました。\n詳細: ${apiError.message}`});
+        logger.error("[refineHairstyleImage] Gemini API call or Storage upload failed:", apiError);
+        res.status(500).json({error: "Image Generation Error", message: `画像修正または保存に失敗しました。\n詳細: ${apiError.message}`});
       }
     });
 
@@ -469,8 +593,7 @@ async function callGeminiApiWithRetry(url, payload, maxRetries = 3) {
 
       if (response.ok) {
         const data = await response.json();
-        // ★★★ 修正点: AIの応答オブジェクト全体をそのまま返す ★★★
-        return data;
+        return data; // 応答オブジェクト全体をそのまま返す
       }
 
       // リトライ対象のエラー (429: レート制限, 500/503: サーバーエラー)
@@ -501,4 +624,3 @@ async function callGeminiApiWithRetry(url, payload, maxRetries = 3) {
   // ループが完了しても成功しなかった場合（理論上到達しないが）
   throw new Error(`Gemini API call failed exhaustively after ${maxRetries} retries.`);
 }
-

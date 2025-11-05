@@ -50,6 +50,7 @@ body {
     width: 100%;
     text-align: center;
     box-sizing: border-box;
+    position: relative; /* キャプチャ時のローディング表示基準のため */
 }
 
 /* --- Phase 1 Styles --- */
@@ -63,7 +64,7 @@ body {
 }
 
 .main-title {
-    font-size: 26px; /* 少し大きく */
+    font-size: 24px; /* 26px から 24px に変更 */
     color: var(--dark-color);
     font-weight: 700; /* 太めに */
     margin-bottom: 10px;
@@ -183,7 +184,8 @@ body {
     margin-right: 15px;
     flex-shrink: 0;
     color: #4f46e5; /* アイコン色 */
-    font-size: 20px; /* アイコンサイズ */
+    font-size: 24px;
+    line-height: 1;
     transition: background-color 0.2s ease, color 0.2s ease; /* アニメーション追加 */
 }
 
@@ -308,9 +310,11 @@ button {
 }
 
 .result-icon {
-    font-size: 22px; /* 少し大きく */
+    width: 28px;       /* アイコンの幅を指定 */
+    height: 28px;      /* アイコンの高さを指定 */
     margin-right: 12px;
-    color: var(--primary-color); /* アイコンの色 */
+    object-fit: contain; /* 画像の比率を保つ */
+    vertical-align: middle; /* タイトルテキストとの縦位置調整 */
 }
 
 .result-grid {
@@ -347,13 +351,16 @@ button {
     font-weight: 600;
 }
 .proposal-icon {
-    font-size: 22px;
+    width: 28px;       /* アイコンの幅を指定 */
+    height: 28px;      /* アイコンの高さを指定 */
     margin-right: 12px;
-    color: var(--primary-color);
+    object-fit: contain; /* 画像の比率を保つ */
+    vertical-align: middle; /* タイトルテキストとの縦位置調整 */
 }
+
 .proposal-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr; /* 1列に変更 */
     gap: 15px;
 }
 .proposal-card {
@@ -404,6 +411,56 @@ button {
     color: var(--text-color);
 }
 
+.best-colors-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4色を横並びに */
+    gap: 15px;
+    padding: 10px 0;
+    justify-items: center; /* 中央揃え */
+}
+.color-swatch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.color-swatch-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    margin-bottom: 8px;
+    background-color: #ccc; /* デフォルト色 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.color-swatch-name {
+    font-size: 13px;
+    color: var(--text-color);
+    font-weight: 500;
+    text-align: center;
+}
+
+.makeup-grid {
+    display: grid;
+    grid-template-columns: auto 1fr; /* ラベル幅は自動、値は残り */
+    gap: 10px 15px; /* ギャップ調整 */
+    padding: 18px; /* パディング調整 */
+    background-color: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+}
+.makeup-item-label {
+    font-weight: 500;
+    color: var(--text-color-light);
+    font-size: 15px;
+}
+.makeup-item-value {
+    color: var(--dark-color);
+    font-weight: 600;
+    text-align: right;
+    font-size: 15px;
+}
+
+
 /* --- Button Styles --- */
 /* プライマリボタン (例: 診断を始める) */
 .btn-primary {
@@ -421,6 +478,13 @@ button {
     background: linear-gradient(to right, #2dd4bf, #34d399); /* グラデーション */
     box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3); /* 影調整 */
     transition: all 0.2s ease;
+}
+
+/* ★★★ 修正: フェーズ6の保存ボタン ★★★ */
+#phase6 .btn-primary {
+    display: block;
+    width: 100%;
+    margin-top: 25px; /* 微調整セクションからのマージン */
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -460,14 +524,121 @@ button {
     box-shadow: 0 3px 10px rgba(15, 23, 42, 0.2);
 }
 
+/* セカンダリボタン (画像保存) */
+.btn-secondary {
+    display: block;
+    width: 100%;
+    margin: 15px auto 0 auto; /* 上マージンを少し小さく */
+    color: var(--primary-color);
+    font-size: 16px; /* 少し小さく */
+    font-weight: 600;
+    padding: 13px 20px; /* パディング調整 */
+    border: 1px solid var(--primary-color);
+    border-radius: 12px;
+    cursor: pointer;
+    background-color: #f0fdfa; /* 薄い背景色 */
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #ccfbf1; /* ホバー色 */
+    transform: translateY(-1px);
+}
+.btn-secondary:active:not(:disabled) {
+    transform: translateY(0px);
+}
+
+/* 戻るボタン用の白背景スタイル */
+.btn-secondary-white {
+    background-color: white;
+    margin-top: 10px; /* 他のボタンとの間隔 */
+}
+.btn-secondary-white:hover:not(:disabled) {
+    background-color: #f8fafc; /* 白ホバー色 */
+}
+
+/* キャプチャ（画像保存）時に非表示にする */
+.no-print {
+    /* JS側で visibility を制御 */
+}
+
+/* キャプチャ中のローディングテキスト */
+.capture-loading-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px 20px;
+    border-radius: 12px;
+    z-index: 10;
+    color: var(--dark-color);
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    /* .no-print クラスと併用されるため、JS側で表示制御 */
+}
+
+
 /* --- Phase 6 Result --- */
+/* ★ 追加: 画像とスピナーのコンテナ */
+.generated-image-container {
+    position: relative;
+    width: 100%;
+    max-width: 350px; /* 画像の最大幅（任意） */
+    min-height: 200px; /* 読み込み中の高さを確保 */
+    margin: 0 auto 25px auto; /* 下マージンを画像自体からコンテナに移動 */
+}
 #generated-image {
     display: block; /* 中央寄せのため */
     max-width: 100%;
     height: auto;
     border-radius: 16px; /* 角丸調整 */
-    margin: 0 auto 25px auto; /* マージン調整 */
     border: 1px solid var(--border-color); /* 枠線追加 */
     background-color: #f3f4f6; /* 読み込み中用背景 */
+    margin: 0; /* マージンリセット */
+    transition: opacity 0.3s ease;
+}
+/* ★ 追加: 微調整中のスピナー */
+#refinement-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    display: none; /* JSで制御 */
+    z-index: 10;
 }
 
+
+/* ★★★ 追加: 微調整セクション ★★★ */
+.refinement-section {
+    margin-top: 20px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    background-color: #f9fafb;
+    border-radius: 16px;
+    text-align: left;
+}
+/* ★ 追加: 微調整セクションのタイトル */
+.refinement-title {
+    font-size: 18px;
+    color: var(--dark-color);
+    margin: 0 0 10px 0; /* マージン調整 */
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+}
+#refinement-prompt-input {
+    width: 100%;
+}
+#refine-image-btn {
+    margin-top: 0; /* form-group のマージンがあるので 0 に */
+    font-size: 16px;
+}
+/* ★★★ 追加: フェーズ6の「提案に戻る」ボタン ★★★ */
+#phase6 .btn-outline {
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+    box-sizing: border-box; /* paddingがwidthに含まれるように */
+}

@@ -9,28 +9,28 @@
     "rewrites": [
       {
         "source": "/requestDiagnosis",
-        "function": "requestDiagnosis" // シンプルな形式に戻した
+        "function": "requestDiagnosis"
       },
       {
         "source": "/helloWorld",
-        "function": "helloWorld" // シンプルな形式に戻した
+        "function": "helloWorld"
       },
-      // ★ 新しい書き換えルールを追加 ★
       {
         "source": "/generateHairstyleImage",
         "function": "generateHairstyleImage"
       },
-      // 「**」は必ず最後に配置
+      {
+        "source": "/refineHairstyleImage",
+        "function": "refineHairstyleImage"
+      },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
-    // "headers": [ ... ] // headersは一旦コメントアウトのまま
   },
   "functions": {
     "source": "functions",
     "runtime": "nodejs20"
   }
 }
-
